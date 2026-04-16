@@ -12,19 +12,10 @@ const handleAssistant = () => {
   <main class="page">
     <div class="hero-frame">
       <img
-        src="./assets/home-page.png"
+        src="./assets/home-page-full.jpeg"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
       />
-
-      <div class="button-overlay">
-        <button class="overlay-button primary" @click="handleRecommendation">
-          Get AI recommendations
-        </button>
-        <button class="overlay-button secondary" @click="handleAssistant">
-          Ask AI assistant
-        </button>
-      </div>
     </div>
   </main>
 </template>
@@ -32,7 +23,6 @@ const handleAssistant = () => {
 <style scoped>
 .page {
   width: 100%;
-  height: 100vh;
   margin: 0;
   overflow: hidden;
   background: #f2f2f2;
