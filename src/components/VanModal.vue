@@ -2,6 +2,7 @@
 import { ref, computed } from "vue";
 import purposes from "../data/purpose_of_vehicle.json";
 import features from "../data/features_and_equipment.json";
+import { getRecommendedFeatures } from "../services/deepseek";
 
 defineProps<{ open: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -10,6 +11,8 @@ const step = ref(1);
 const selectedPurposes = ref<string[]>([]);
 const selectedFeatures = ref<string[]>([]);
 const featureSearch = ref("");
+const aiLoading = ref(false);
+const aiError = ref<string | null>(null);
 
 function togglePurpose(id: string) {
   const idx = selectedPurposes.value.indexOf(id);
@@ -36,9 +39,26 @@ const selectedPurposeLabels = computed(() =>
     .join(" - "),
 );
 
-function goToStep2() {
+async function goToStep2() {
   if (selectedPurposes.value.length === 0) return;
-  step.value = 2;
+
+  aiLoading.value = true;
+  aiError.value = null;
+
+  try {
+    const chosenPurposes = purposes.filter((p) =>
+      selectedPurposes.value.includes(p.id),
+    );
+    const recommended = await getRecommendedFeatures(chosenPurposes, features);
+    selectedFeatures.value = recommended;
+  } catch (err) {
+    aiError.value =
+      err instanceof Error ? err.message : "Failed to reach AI service.";
+    selectedFeatures.value = [];
+  } finally {
+    aiLoading.value = false;
+    step.value = 2;
+  }
 }
 
 function close() {
@@ -46,11 +66,11 @@ function close() {
   selectedPurposes.value = [];
   selectedFeatures.value = [];
   featureSearch.value = "";
+  aiError.value = null;
   emit("close");
 }
 
 function finish() {
-  // Placeholder for final action
   console.log("Selected purposes:", selectedPurposes.value);
   console.log("Selected features:", selectedFeatures.value);
   close();
@@ -101,10 +121,11 @@ function finish() {
           <div class="modal-footer step1-footer">
             <button
               class="continue-link"
-              :disabled="selectedPurposes.length === 0"
+              :disabled="selectedPurposes.length === 0 || aiLoading"
               @click="goToStep2"
             >
-              › Continue
+              <span v-if="aiLoading" class="spinner" />
+              <span v-else>› Continue</span>
             </button>
           </div>
         </template>
@@ -125,6 +146,10 @@ function finish() {
             <p class="recommended-label">
               Recommended features for {{ selectedPurposeLabels }}
             </p>
+
+            <div v-if="aiError" class="ai-error">
+              ⚠ AI recommendation unavailable: {{ aiError }}
+            </div>
 
             <div class="feature-pills">
               <button
@@ -413,5 +438,33 @@ function finish() {
 }
 .continue-btn:hover {
   background: #005fa3;
+}
+
+/* ── Spinner ── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #0078d4;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+/* ── AI error banner ── */
+.ai-error {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #856404;
+  margin-bottom: 12px;
 }
 </style>
