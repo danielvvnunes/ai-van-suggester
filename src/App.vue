@@ -1,12 +1,4 @@
-<script setup lang="ts">
-const handleRecommendation = () => {
-  console.log("Get AI recommendations");
-};
-
-const handleAssistant = () => {
-  console.log("Ask AI assistant");
-};
-</script>
+<script setup lang="ts"></script>
 
 <template>
   <main class="page">
