@@ -1,14 +1,20 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref } from "vue";
+import VanModal from "./components/VanModal.vue";
+
+const modalOpen = ref(false);
+</script>
 
 <template>
   <main class="page">
-    <div class="hero-frame">
+    <div class="hero-frame" @click="modalOpen = true" style="cursor: pointer">
       <img
         src="./assets/home-page-full.jpeg"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
       />
     </div>
+    <VanModal :open="modalOpen" @close="modalOpen = false" />
   </main>
 </template>
 
