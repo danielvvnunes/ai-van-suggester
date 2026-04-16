@@ -1,19 +1,25 @@
 <script setup lang="ts"></script>
 
 <template>
-  <img src="./assets/home-page.png" class="fullscreen-image" />
+  <main class="hero">
+    <img
+      src="./assets/home-page.png"
+      alt="Mercedes-Benz Vans AI Vehicle Advisor"
+      class="hero-image"
+    />
+  </main>
 </template>
 
-<style>
-html,
-body {
-  margin: 0;
-  padding: 0;
+<style scoped>
+.hero {
+  width: 100%;
+  height: calc(100vh - 72px); /* altura do header */
+  overflow: hidden;
 }
 
-.fullscreen-image {
-  width: 100vw;
-  height: 100vh;
+.hero-image {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   display: block;
 }
