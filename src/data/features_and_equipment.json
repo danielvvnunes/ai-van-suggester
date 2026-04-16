@@ -1,0 +1,20 @@
+[
+  { "id": "roof-rails", "label": "Roof rails" },
+  { "id": "3-seats", "label": "3 seats" },
+  { "id": "max-length", "label": "Max. vehicle length 5,40 m" },
+  { "id": "apple-carplay", "label": "Apple CarPlay" },
+  { "id": "mbux", "label": "MBUX Multimediasystem" },
+  { "id": "rear-camera", "label": "Rear-view camera" },
+  { "id": "wing-doors", "label": "Wing doors" },
+  { "id": "sliding-both-sides", "label": "Sliding doors on both sides" },
+  { "id": "shelving-system", "label": "Shelving System" },
+  { "id": "partition-wall", "label": "Partition wall" },
+  { "id": "cruise-control", "label": "Cruise control" },
+  { "id": "navigation", "label": "Navigation" },
+  { "id": "parking-assist", "label": "Parking assist" },
+  { "id": "heated-seats", "label": "Heated seats" },
+  { "id": "tow-hitch", "label": "Tow hitch" },
+  { "id": "360-camera", "label": "360° camera" },
+  { "id": "electric-folding-mirrors", "label": "Electric folding mirrors" },
+  { "id": "ambient-lighting", "label": "Ambient lighting" }
+]
