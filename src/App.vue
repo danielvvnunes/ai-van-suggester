@@ -9,11 +9,23 @@ const modalOpen = ref(false);
   <main class="page">
     <div class="hero-frame" @click="modalOpen = true" style="cursor: pointer">
       <img
-        src="./assets/home-page-full.jpeg"
+        src="./assets/stage.jpg"
+        alt="Mercedes-Benz Vans homepage mock"
+        class="hero-image"
+      />
+      <img
+        src="./assets/td-combinations/standard-manual.jpeg"
+        alt="Mercedes-Benz Vans homepage mock"
+        class="hero-image"
+      />
+
+      <img
+        src="./assets/page.jpg"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
       />
     </div>
+
     <VanModal :open="modalOpen" @close="modalOpen = false" />
   </main>
 </template>
