@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, readonly, ref } from "vue";
+import { computed, ref } from "vue";
 import purposes from "../data/purpose_of_vehicle.json";
 
 type Purpose = {
