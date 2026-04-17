@@ -1,11 +1,23 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { computed, ref } from "vue";
 import purposes from "../data/purpose_of_vehicle.json";
 import features from "../data/features_and_equipment.json";
-import { getRecommendedFeatures } from "../services/deepseek";
+import { getRecommendations } from "../services/deepseek";
 
 defineProps<{ open: boolean }>();
-const emit = defineEmits<{ (e: "close"): void }>();
+const emit = defineEmits<{
+  (e: "close"): void;
+  (
+    e: "apply",
+    payload: {
+      size: "standard" | "long" | "extralong";
+      transmission: "manual" | "automatic";
+    },
+  ): void;
+}>();
+
+const size = ref<"standard" | "long" | "extralong">("standard");
+const transmission = ref<"manual" | "automatic">("manual");
 
 const step = ref(1);
 const selectedPurposes = ref<string[]>([]);
@@ -15,46 +27,78 @@ const aiLoading = ref(false);
 const aiError = ref<string | null>(null);
 
 function togglePurpose(id: string) {
-  const idx = selectedPurposes.value.indexOf(id);
-  if (idx === -1) selectedPurposes.value.push(id);
-  else selectedPurposes.value.splice(idx, 1);
+  const index = selectedPurposes.value.indexOf(id);
+
+  if (index === -1) {
+    selectedPurposes.value.push(id);
+    return;
+  }
+
+  selectedPurposes.value.splice(index, 1);
 }
 
 function toggleFeature(id: string) {
-  const idx = selectedFeatures.value.indexOf(id);
-  if (idx === -1) selectedFeatures.value.push(id);
-  else selectedFeatures.value.splice(idx, 1);
+  const index = selectedFeatures.value.indexOf(id);
+
+  if (index === -1) {
+    selectedFeatures.value.push(id);
+    return;
+  }
+
+  selectedFeatures.value.splice(index, 1);
 }
 
 const filteredFeatures = computed(() => {
-  const q = featureSearch.value.toLowerCase();
-  if (!q) return features;
-  return features.filter((f) => f.label.toLowerCase().includes(q));
+  const query = featureSearch.value.toLowerCase().trim();
+
+  if (!query) {
+    return features;
+  }
+
+  return features.filter((feature) =>
+    feature.label.toLowerCase().includes(query),
+  );
 });
 
 const selectedPurposeLabels = computed(() =>
   purposes
-    .filter((p) => selectedPurposes.value.includes(p.id))
-    .map((p) => p.title)
+    .filter((purpose) => selectedPurposes.value.includes(purpose.id))
+    .map((purpose) => purpose.title)
     .join(" - "),
 );
 
 async function goToStep2() {
-  if (selectedPurposes.value.length === 0) return;
+  if (selectedPurposes.value.length === 0) {
+    return;
+  }
 
   aiLoading.value = true;
   aiError.value = null;
 
   try {
-    const chosenPurposes = purposes.filter((p) =>
-      selectedPurposes.value.includes(p.id),
+    const chosenPurposes = purposes.filter((purpose) =>
+      selectedPurposes.value.includes(purpose.id),
     );
-    const recommended = await getRecommendedFeatures(chosenPurposes, features);
-    selectedFeatures.value = recommended;
-  } catch (err) {
+
+    const recommendation = await getRecommendations(chosenPurposes, features);
+
+    selectedFeatures.value = recommendation.features;
+
+    if (recommendation.size) {
+      size.value = recommendation.size;
+    }
+
+    if (recommendation.transmission) {
+      transmission.value = recommendation.transmission;
+    }
+
+    console.log("AI recommendation:", recommendation);
+  } catch (error) {
     aiError.value =
-      err instanceof Error ? err.message : "Failed to reach AI service.";
+      error instanceof Error ? error.message : "Failed to reach AI service.";
     selectedFeatures.value = [];
+    size.value = "standard";
+    transmission.value = "manual";
   } finally {
     aiLoading.value = false;
     step.value = 2;
@@ -67,12 +111,18 @@ function close() {
   selectedFeatures.value = [];
   featureSearch.value = "";
   aiError.value = null;
+  aiLoading.value = false;
+  size.value = "standard";
+  transmission.value = "manual";
   emit("close");
 }
 
 function finish() {
-  console.log("Selected purposes:", selectedPurposes.value);
-  console.log("Selected features:", selectedFeatures.value);
+  emit("apply", {
+    size: size.value,
+    transmission: transmission.value,
+  });
+
   close();
 }
 </script>
@@ -81,7 +131,6 @@ function finish() {
   <Teleport to="body">
     <div v-if="open" class="modal-backdrop" @click.self="close">
       <div class="modal" role="dialog" aria-modal="true">
-        <!-- Progress bar -->
         <div class="progress-bar">
           <div
             class="progress-fill"
@@ -89,10 +138,8 @@ function finish() {
           />
         </div>
 
-        <!-- Close -->
         <button class="close-btn" aria-label="Close" @click="close">✕</button>
 
-        <!-- ───── STEP 1 ───── -->
         <template v-if="step === 1">
           <div class="modal-body">
             <h2 class="modal-title">
@@ -106,14 +153,18 @@ function finish() {
 
             <div class="purpose-grid">
               <button
-                v-for="p in purposes"
-                :key="p.id"
+                v-for="purpose in purposes"
+                :key="purpose.id"
                 class="purpose-card"
-                :class="{ selected: selectedPurposes.includes(p.id) }"
-                @click="togglePurpose(p.id)"
+                :class="{ selected: selectedPurposes.includes(purpose.id) }"
+                @click="togglePurpose(purpose.id)"
               >
-                <img :src="p.image" :alt="p.title" class="purpose-img" />
-                <span class="purpose-label">{{ p.title }}</span>
+                <img
+                  :src="purpose.image"
+                  :alt="purpose.title"
+                  class="purpose-img"
+                />
+                <span class="purpose-label">{{ purpose.title }}</span>
               </button>
             </div>
           </div>
@@ -130,7 +181,6 @@ function finish() {
           </div>
         </template>
 
-        <!-- ───── STEP 2 ───── -->
         <template v-else>
           <div class="modal-body">
             <h2 class="modal-title">
@@ -153,13 +203,13 @@ function finish() {
 
             <div class="feature-pills">
               <button
-                v-for="f in filteredFeatures"
-                :key="f.id"
+                v-for="feature in filteredFeatures"
+                :key="feature.id"
                 class="pill"
-                :class="{ selected: selectedFeatures.includes(f.id) }"
-                @click="toggleFeature(f.id)"
+                :class="{ selected: selectedFeatures.includes(feature.id) }"
+                @click="toggleFeature(feature.id)"
               >
-                {{ f.label }}
+                {{ feature.label }}
                 <span class="pill-circle" />
               </button>
             </div>
@@ -188,7 +238,6 @@ function finish() {
 </template>
 
 <style scoped>
-/* ── Backdrop ── */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -199,7 +248,6 @@ function finish() {
   z-index: 1000;
 }
 
-/* ── Modal shell ── */
 .modal {
   background: #fff;
   border-radius: 4px;
@@ -211,19 +259,18 @@ function finish() {
   overflow: hidden;
 }
 
-/* ── Progress bar ── */
 .progress-bar {
   height: 4px;
   background: #e0e0e0;
   flex-shrink: 0;
 }
+
 .progress-fill {
   height: 100%;
   background: #0078d4;
   transition: width 0.3s ease;
 }
 
-/* ── Close button ── */
 .close-btn {
   position: absolute;
   top: 14px;
@@ -241,18 +288,17 @@ function finish() {
   color: #333;
   z-index: 1;
 }
+
 .close-btn:hover {
   background: #ddd;
 }
 
-/* ── Body ── */
 .modal-body {
   padding: 28px 32px 16px;
   overflow-y: auto;
   flex: 1;
 }
 
-/* ── Title ── */
 .modal-title {
   font-size: 20px;
   font-weight: 600;
@@ -263,24 +309,26 @@ function finish() {
   padding-right: 32px;
   line-height: 1.3;
 }
+
 .star-icon {
   color: #0078d4;
   font-size: 22px;
   flex-shrink: 0;
   margin-top: 1px;
 }
+
 .modal-subtitle {
   font-size: 13px;
   color: #666;
   margin: 0 0 24px;
 }
 
-/* ── Purpose grid ── */
 .purpose-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 12px;
 }
+
 .purpose-card {
   display: flex;
   flex-direction: column;
@@ -293,19 +341,23 @@ function finish() {
   text-align: center;
   transition: border-color 0.15s;
 }
+
 .purpose-card:hover {
   border-color: #aaa;
 }
+
 .purpose-card.selected {
   border-color: #0078d4;
   background: #f0f7ff;
 }
+
 .purpose-img {
   width: 100%;
   height: 120px;
   object-fit: cover;
   display: block;
 }
+
 .purpose-label {
   padding: 10px 8px;
   font-size: 13px;
@@ -314,15 +366,16 @@ function finish() {
   line-height: 1.3;
 }
 
-/* ── Footer ── */
 .modal-footer {
   flex-shrink: 0;
   padding: 14px 32px 24px;
 }
+
 .step1-footer {
   display: flex;
   justify-content: center;
 }
+
 .continue-link {
   background: none;
   border: none;
@@ -332,15 +385,16 @@ function finish() {
   cursor: pointer;
   padding: 4px 0;
 }
+
 .continue-link:disabled {
   color: #aaa;
   cursor: not-allowed;
 }
+
 .continue-link:not(:disabled):hover {
   text-decoration: underline;
 }
 
-/* ── Recommended label ── */
 .recommended-label {
   font-size: 13px;
   font-weight: 600;
@@ -348,13 +402,13 @@ function finish() {
   color: #111;
 }
 
-/* ── Feature pills ── */
 .feature-pills {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 20px;
 }
+
 .pill {
   display: inline-flex;
   align-items: center;
@@ -370,13 +424,16 @@ function finish() {
     border-color 0.15s,
     background 0.15s;
 }
+
 .pill:hover {
   border-color: #888;
 }
+
 .pill.selected {
   border-color: #0078d4;
   background: #e8f4ff;
 }
+
 .pill-circle {
   width: 14px;
   height: 14px;
@@ -385,12 +442,12 @@ function finish() {
   display: inline-block;
   flex-shrink: 0;
 }
+
 .pill.selected .pill-circle {
   border-color: #0078d4;
   background: #0078d4;
 }
 
-/* ── Search box ── */
 .search-box {
   display: flex;
   align-items: center;
@@ -400,10 +457,12 @@ function finish() {
   gap: 10px;
   background: #fff;
 }
+
 .search-icon {
   font-size: 15px;
   opacity: 0.5;
 }
+
 .search-input {
   flex: 1;
   border: none;
@@ -412,19 +471,21 @@ function finish() {
   color: #555;
   background: transparent;
 }
+
 .search-input::placeholder {
   color: #aaa;
 }
+
 .search-caret {
   font-size: 10px;
   color: #888;
 }
 
-/* ── Step 2 CTA button ── */
 .step2-footer {
   display: flex;
   justify-content: center;
 }
+
 .continue-btn {
   background: #0078d4;
   color: #fff;
@@ -436,16 +497,17 @@ function finish() {
   cursor: pointer;
   transition: background 0.15s;
 }
+
 .continue-btn:hover {
   background: #005fa3;
 }
 
-/* ── Spinner ── */
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
+
 .spinner {
   display: inline-block;
   width: 14px;
@@ -457,7 +519,6 @@ function finish() {
   vertical-align: middle;
 }
 
-/* ── AI error banner ── */
 .ai-error {
   background: #fff3cd;
   border: 1px solid #ffc107;

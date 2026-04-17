@@ -3,6 +3,16 @@ import { ref } from "vue";
 import VanModal from "./components/VanModal.vue";
 
 const modalOpen = ref(false);
+const size = ref<"standard" | "long" | "extralong">("standard");
+const transmission = ref<"manual" | "automatic">("manual");
+
+function handleApply(payload: {
+  size: "standard" | "long" | "extralong";
+  transmission: "manual" | "automatic";
+}) {
+  size.value = payload.size;
+  transmission.value = payload.transmission;
+}
 </script>
 
 <template>
@@ -14,7 +24,7 @@ const modalOpen = ref(false);
         class="hero-image"
       />
       <img
-        src="./assets/td-combinations/standard-manual.jpeg"
+        :src="`src/assets/td-combinations/${size}-${transmission}.jpeg`"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
       />
@@ -26,7 +36,11 @@ const modalOpen = ref(false);
       />
     </div>
 
-    <VanModal :open="modalOpen" @close="modalOpen = false" />
+    <VanModal
+      :open="modalOpen"
+      @close="modalOpen = false"
+      @apply="handleApply"
+    />
   </main>
 </template>
 

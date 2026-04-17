@@ -2,31 +2,41 @@
   {
     "id": "urban",
     "title": "Urban & City Use",
-    "image": "https://picsum.photos/seed/urban-van/400/260"
+    "image": "src/assets/use-cases/urban.png"
   },
   {
     "id": "intercity",
     "title": "Intercity & Long-Distance Driving",
-    "image": "https://picsum.photos/seed/highway-van/400/260"
+    "image": "src/assets/use-cases/intercity.jpg"
   },
   {
     "id": "transport",
     "title": "Transport of People & Materials",
-    "image": "https://picsum.photos/seed/transport-van/400/260"
+    "image": "src/assets/use-cases/transport.png"
   },
   {
     "id": "heavy",
-    "title": "Heavy-Duty Job-Site",
-    "image": "https://picsum.photos/seed/jobsite-van/400/260"
+    "title": "Heavy-Duty & Job-Site Use",
+    "image": "src/assets/use-cases/heavy.png"
   },
   {
     "id": "delivery",
-    "title": "Last-Mile Delivery",
-    "image": "https://picsum.photos/seed/delivery-van/400/260"
+    "title": "Delivery & Logistics Scenarios",
+    "image": "src/assets/use-cases/delivery.jpg"
   },
   {
-    "id": "camper",
-    "title": "Camper & Leisure",
-    "image": "https://picsum.photos/seed/camper-van/400/260"
+    "id": "mobile",
+    "title": "Mobile Workspace",
+    "image": "src/assets/use-cases/mobile.png"
+  },
+  {
+    "id": "challenging",
+    "title": "Challenging Terrain & Weather",
+    "image": "src/assets/use-cases/challenging.png"
+  },
+  {
+    "id": "general",
+    "title": "General Business Use",
+    "image": "src/assets/use-cases/general.png"
   }
 ]
