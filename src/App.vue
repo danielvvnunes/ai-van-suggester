@@ -13,6 +13,11 @@ function handleApply(payload: {
   size.value = payload.size;
   transmission.value = payload.transmission;
 }
+
+const tdImage = new URL(
+  `./assets/td-combinations/${size.value}-${transmission.value}.jpeg`,
+  import.meta.url,
+);
 </script>
 
 <template>
@@ -24,7 +29,7 @@ function handleApply(payload: {
         class="hero-image"
       />
       <img
-        :src="`src/assets/td-combinations/${size}-${transmission}.jpeg`"
+        :src="tdImage.href"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
       />
