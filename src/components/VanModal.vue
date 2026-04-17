@@ -1,37 +1,44 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, readonly, ref } from "vue";
 import purposes from "../data/purpose_of_vehicle.json";
-import features from "../data/features_and_equipment.json";
-import { getRecommendations } from "../services/deepseek";
 
 type Purpose = {
   id: string;
   title: string;
   image: string;
+  desc: string;
 };
+
+type ApiFeature = {
+  id: string;
+  label: string;
+  selected: boolean;
+};
+
+type ApiResponse = {
+  selection: ApiFeature[];
+  all: ApiFeature[];
+};
+
+export type SelectedFeature = { id: string; label: string };
 
 defineProps<{ open: boolean }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (
-    e: "apply",
-    payload: {
-      size: "standard" | "long" | "extralong";
-      transmission: "manual" | "automatic";
-    },
-  ): void;
+  (e: "apply", features: SelectedFeature[]): void;
 }>();
-
-const size = ref<"standard" | "long" | "extralong">("standard");
-const transmission = ref<"manual" | "automatic">("manual");
 
 const step = ref(1);
 const selectedPurposes = ref<string[]>([]);
-const selectedFeatures = ref<string[]>([]);
-const featureSearch = ref("");
-const aiLoading = ref(false);
-const aiError = ref<string | null>(null);
+const apiLoading = ref(false);
+const apiError = ref<string | null>(null);
+
+// Step 2 state
+const selectionFeatures = ref<ApiFeature[]>([]);
+const allFeatures = ref<ApiFeature[]>([]);
+const selectedFeatureIds = ref<Set<string>>(new Set());
+const dropdownValue = ref("");
 
 const purposesWithImages = computed(() =>
   (purposes as Purpose[]).map((purpose) => ({
@@ -41,81 +48,137 @@ const purposesWithImages = computed(() =>
   })),
 );
 
-function togglePurpose(id: string) {
-  const index = selectedPurposes.value.indexOf(id);
-
-  if (index === -1) {
-    selectedPurposes.value.push(id);
-    return;
-  }
-
-  selectedPurposes.value.splice(index, 1);
-}
-
-function toggleFeature(id: string) {
-  const index = selectedFeatures.value.indexOf(id);
-
-  if (index === -1) {
-    selectedFeatures.value.push(id);
-    return;
-  }
-
-  selectedFeatures.value.splice(index, 1);
-}
-
-const filteredFeatures = computed(() => {
-  const query = featureSearch.value.toLowerCase().trim();
-
-  if (!query) {
-    return features;
-  }
-
-  return features.filter((feature) =>
-    feature.label.toLowerCase().includes(query),
-  );
-});
-
 const selectedPurposeLabels = computed(() =>
   (purposes as Purpose[])
-    .filter((purpose) => selectedPurposes.value.includes(purpose.id))
-    .map((purpose) => purpose.title)
+    .filter((p) => selectedPurposes.value.includes(p.id))
+    .map((p) => p.title)
     .join(" - "),
 );
 
-async function goToStep2() {
-  if (selectedPurposes.value.length === 0) {
-    return;
+function togglePurpose(id: string) {
+  const index = selectedPurposes.value.indexOf(id);
+  if (index === -1) {
+    selectedPurposes.value.push(id);
+  } else {
+    selectedPurposes.value.splice(index, 1);
   }
+}
 
-  aiLoading.value = true;
-  aiError.value = null;
+function toggleSelectionFeature(id: string) {
+  if (selectedFeatureIds.value.has(id)) {
+    selectedFeatureIds.value.delete(id);
+  } else {
+    selectedFeatureIds.value.add(id);
+  }
+}
+
+function onDropdownChange() {
+  const id = dropdownValue.value;
+  if (!id) return;
+  selectedFeatureIds.value.add(id);
+  dropdownValue.value = "";
+}
+
+// Features visible as pills = selectionFeatures + any user-added from "all" not already in selection
+const extraFeatures = computed(() =>
+  allFeatures.value.filter(
+    (f) =>
+      selectedFeatureIds.value.has(f.id) &&
+      !selectionFeatures.value.some((s) => s.id === f.id),
+  ),
+);
+
+// Dropdown options = "all" items not already shown as pills in selectionFeatures
+const dropdownOptions = computed(() =>
+  allFeatures.value.filter(
+    (f) => !selectionFeatures.value.some((s) => s.id === f.id),
+  ),
+);
+
+async function goToStep2() {
+  if (selectedPurposes.value.length === 0) return;
+
+  apiLoading.value = true;
+  apiError.value = null;
 
   try {
-    const chosenPurposes = (purposes as Purpose[]).filter((purpose) =>
-      selectedPurposes.value.includes(purpose.id),
+    const chosenPurposes = (purposes as Purpose[]).filter((p) =>
+      selectedPurposes.value.includes(p.id),
     );
 
-    const recommendation = await getRecommendations(chosenPurposes, features);
+    const payload = {
+      usecases: chosenPurposes.map((p) => ({ name: p.title, desc: p.desc })),
+    };
 
-    selectedFeatures.value = recommendation.features;
+    // ====================================
+    // Uncomment after backend is readonly
+    // ====================================
 
-    if (recommendation.size) {
-      size.value = recommendation.size;
-    }
+    // const response = await fetch(
+    //   "https://dev.api.oneweb.mercedes-benz.com/vans/equipment/search/api/filter-options",
+    //   {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify(payload),
+    //   },
+    // );
 
-    if (recommendation.transmission) {
-      transmission.value = recommendation.transmission;
-    }
+    // if (!response.ok) {
+    //   throw new Error(`API request failed: ${response.status}`);
+    // }
 
-    console.log("AI recommendation:", recommendation);
+    // const data: ApiResponse = await response.json();
+
+    // ====================================
+
+    console.log("API payload:", payload);
+
+    // Mock API response — replace with real fetch when API is ready
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const data: ApiResponse = {
+      selection: [
+        { id: "roof-rails", label: "Roof rails", selected: true },
+        { id: "parking-assist", label: "Parking assist", selected: true },
+        { id: "cruise-control", label: "Cruise control", selected: false },
+        { id: "3-seats", label: "3 seats", selected: true },
+        { id: "climate-control", label: "Climate control", selected: false },
+        { id: "navigation", label: "Navigation system", selected: true },
+        { id: "cargo-liner", label: "Cargo liner", selected: false },
+        { id: "tow-bar", label: "Tow bar", selected: false },
+        { id: "led-lights", label: "LED headlights", selected: true },
+        { id: "keyless-entry", label: "Keyless entry", selected: false },
+      ],
+      all: [
+        { id: "apple-carplay", label: "Apple CarPlay", selected: false },
+        { id: "android-auto", label: "Android Auto", selected: false },
+        { id: "360-camera", label: "360° camera", selected: false },
+        { id: "blind-spot", label: "Blind spot assist", selected: false },
+        { id: "heated-seats", label: "Heated seats", selected: false },
+        { id: "lane-assist", label: "Lane keeping assist", selected: false },
+        { id: "rear-camera", label: "Rear view camera", selected: false },
+        { id: "ambient-light", label: "Ambient lighting", selected: false },
+        { id: "usb-c", label: "USB-C charging ports", selected: false },
+        { id: "roof-rack", label: "Roof rack", selected: false },
+        { id: "partition-wall", label: "Partition wall", selected: false },
+        { id: "sliding-door", label: "Electric sliding door", selected: false },
+      ],
+    };
+
+    selectionFeatures.value = data.selection;
+    allFeatures.value = data.all;
+
+    const preSelected = new Set(
+      data.selection.filter((f) => f.selected).map((f) => f.id),
+    );
+    selectedFeatureIds.value = preSelected;
   } catch (error) {
-    aiError.value =
-      error instanceof Error ? error.message : "Failed to reach AI service.";
-    selectedFeatures.value = [];
-    size.value = "standard";
-    transmission.value = "manual";
+    apiError.value =
+      error instanceof Error ? error.message : "Failed to reach API.";
+    selectionFeatures.value = [];
+    allFeatures.value = [];
+    selectedFeatureIds.value = new Set();
   } finally {
-    aiLoading.value = false;
+    apiLoading.value = false;
     step.value = 2;
   }
 }
@@ -123,21 +186,22 @@ async function goToStep2() {
 function close() {
   step.value = 1;
   selectedPurposes.value = [];
-  selectedFeatures.value = [];
-  featureSearch.value = "";
-  aiError.value = null;
-  aiLoading.value = false;
-  size.value = "standard";
-  transmission.value = "manual";
+  apiLoading.value = false;
+  apiError.value = null;
+  selectionFeatures.value = [];
+  allFeatures.value = [];
+  selectedFeatureIds.value = new Set();
+  dropdownValue.value = "";
   emit("close");
 }
 
 function finish() {
-  emit("apply", {
-    size: size.value,
-    transmission: transmission.value,
-  });
-
+  const allVisible = [...selectionFeatures.value, ...extraFeatures.value];
+  const selected = allVisible.filter((f) => selectedFeatureIds.value.has(f.id));
+  emit(
+    "apply",
+    selected.map((f) => ({ id: f.id, label: f.label })),
+  );
   close();
 }
 </script>
@@ -187,10 +251,10 @@ function finish() {
           <div class="modal-footer step1-footer">
             <button
               class="continue-link"
-              :disabled="selectedPurposes.length === 0 || aiLoading"
+              :disabled="selectedPurposes.length === 0 || apiLoading"
               @click="goToStep2"
             >
-              <span v-if="aiLoading" class="spinner" />
+              <span v-if="apiLoading" class="spinner" />
               <span v-else>› Continue</span>
             </button>
           </div>
@@ -212,17 +276,27 @@ function finish() {
               Recommended features for {{ selectedPurposeLabels }}
             </p>
 
-            <div v-if="aiError" class="ai-error">
-              ⚠ AI recommendation unavailable: {{ aiError }}
+            <div v-if="apiError" class="api-error">
+              ⚠ Could not load recommendations: {{ apiError }}
             </div>
 
             <div class="feature-pills">
               <button
-                v-for="feature in filteredFeatures"
+                v-for="feature in selectionFeatures"
                 :key="feature.id"
                 class="pill"
-                :class="{ selected: selectedFeatures.includes(feature.id) }"
-                @click="toggleFeature(feature.id)"
+                :class="{ selected: selectedFeatureIds.has(feature.id) }"
+                @click="toggleSelectionFeature(feature.id)"
+              >
+                {{ feature.label }}
+                <span class="pill-circle" />
+              </button>
+
+              <button
+                v-for="feature in extraFeatures"
+                :key="feature.id"
+                class="pill selected"
+                @click="toggleSelectionFeature(feature.id)"
               >
                 {{ feature.label }}
                 <span class="pill-circle" />
@@ -231,12 +305,22 @@ function finish() {
 
             <div class="search-box">
               <span class="search-icon">🔍</span>
-              <input
-                v-model="featureSearch"
-                type="text"
-                placeholder="Looking for something else? Search in our equipment"
-                class="search-input"
-              />
+              <select
+                v-model="dropdownValue"
+                class="search-select"
+                @change="onDropdownChange"
+              >
+                <option value="" disabled>
+                  Looking for something else? Browse our equipment
+                </option>
+                <option
+                  v-for="option in dropdownOptions"
+                  :key="option.id"
+                  :value="option.id"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
               <span class="search-caret">▼</span>
             </div>
           </div>
@@ -478,22 +562,19 @@ function finish() {
   opacity: 0.5;
 }
 
-.search-input {
+.search-select {
   flex: 1;
   border: none;
   outline: none;
   font-size: 13px;
   color: #555;
   background: transparent;
+  cursor: pointer;
+  appearance: none;
 }
 
-.search-input::placeholder {
-  color: #aaa;
-}
-
-.search-caret {
-  font-size: 10px;
-  color: #888;
+.search-select option {
+  color: #111;
 }
 
 .step2-footer {
@@ -534,7 +615,7 @@ function finish() {
   vertical-align: middle;
 }
 
-.ai-error {
+.api-error {
   background: #fff3cd;
   border: 1px solid #ffc107;
   border-radius: 4px;
