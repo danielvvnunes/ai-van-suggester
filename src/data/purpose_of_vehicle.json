@@ -2,41 +2,41 @@
   {
     "id": "urban",
     "title": "Urban & City Use",
-    "image": "src/assets/use-cases/urban.png"
+    "image": "urban.png"
   },
   {
     "id": "intercity",
     "title": "Intercity & Long-Distance Driving",
-    "image": "src/assets/use-cases/intercity.jpg"
+    "image": "intercity.jpg"
   },
   {
     "id": "transport",
     "title": "Transport of People & Materials",
-    "image": "src/assets/use-cases/transport.png"
+    "image": "transport.png"
   },
   {
     "id": "heavy",
     "title": "Heavy-Duty & Job-Site Use",
-    "image": "src/assets/use-cases/heavy.png"
+    "image": "heavy.png"
   },
   {
     "id": "delivery",
     "title": "Delivery & Logistics Scenarios",
-    "image": "src/assets/use-cases/delivery.jpg"
+    "image": "delivery.jpg"
   },
   {
     "id": "mobile",
     "title": "Mobile Workspace",
-    "image": "src/assets/use-cases/mobile.png"
+    "image": "mobile.png"
   },
   {
     "id": "challenging",
     "title": "Challenging Terrain & Weather",
-    "image": "src/assets/use-cases/challenging.png"
+    "image": "challenging.png"
   },
   {
     "id": "general",
     "title": "General Business Use",
-    "image": "src/assets/use-cases/general.png"
+    "image": "general.png"
   }
 ]

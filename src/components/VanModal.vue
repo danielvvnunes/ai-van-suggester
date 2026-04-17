@@ -4,7 +4,14 @@ import purposes from "../data/purpose_of_vehicle.json";
 import features from "../data/features_and_equipment.json";
 import { getRecommendations } from "../services/deepseek";
 
+type Purpose = {
+  id: string;
+  title: string;
+  image: string;
+};
+
 defineProps<{ open: boolean }>();
+
 const emit = defineEmits<{
   (e: "close"): void;
   (
@@ -25,6 +32,14 @@ const selectedFeatures = ref<string[]>([]);
 const featureSearch = ref("");
 const aiLoading = ref(false);
 const aiError = ref<string | null>(null);
+
+const purposesWithImages = computed(() =>
+  (purposes as Purpose[]).map((purpose) => ({
+    ...purpose,
+    image: new URL(`../assets/use-cases/${purpose.image}`, import.meta.url)
+      .href,
+  })),
+);
 
 function togglePurpose(id: string) {
   const index = selectedPurposes.value.indexOf(id);
@@ -61,7 +76,7 @@ const filteredFeatures = computed(() => {
 });
 
 const selectedPurposeLabels = computed(() =>
-  purposes
+  (purposes as Purpose[])
     .filter((purpose) => selectedPurposes.value.includes(purpose.id))
     .map((purpose) => purpose.title)
     .join(" - "),
@@ -76,7 +91,7 @@ async function goToStep2() {
   aiError.value = null;
 
   try {
-    const chosenPurposes = purposes.filter((purpose) =>
+    const chosenPurposes = (purposes as Purpose[]).filter((purpose) =>
       selectedPurposes.value.includes(purpose.id),
     );
 
@@ -153,7 +168,7 @@ function finish() {
 
             <div class="purpose-grid">
               <button
-                v-for="purpose in purposes"
+                v-for="purpose in purposesWithImages"
                 :key="purpose.id"
                 class="purpose-card"
                 :class="{ selected: selectedPurposes.includes(purpose.id) }"
