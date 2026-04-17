@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import VanModal from "./components/VanModal.vue";
 
 const modalOpen = ref(false);
@@ -14,9 +14,12 @@ function handleApply(payload: {
   transmission.value = payload.transmission;
 }
 
-const tdImage = new URL(
-  `./assets/td-combinations/${size.value}-${transmission.value}.jpeg`,
-  import.meta.url,
+const tdImage = computed(
+  () =>
+    new URL(
+      `./assets/td-combinations/${size.value}-${transmission.value}.jpeg`,
+      import.meta.url,
+    ).href,
 );
 </script>
 
@@ -29,7 +32,7 @@ const tdImage = new URL(
         class="hero-image"
       />
       <img
-        :src="tdImage.href"
+        :src="tdImage"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
       />
