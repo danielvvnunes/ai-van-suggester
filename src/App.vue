@@ -1,31 +1,72 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import VanModal from "./components/VanModal.vue";
-import type { SelectedFeature } from "./components/VanModal.vue";
+import type { ApplyPayload, SelectedFeature } from "./components/VanModal.vue";
+
+type VehicleLength = "standard" | "long" | "extralong";
+type VehicleTransmission = "manual" | "automatic";
+type VehicleType = "panelvan" | "mpv";
 
 const modalOpen = ref(false);
-const size = ref<"standard" | "long" | "extralong">("standard");
-const transmission = ref<"manual" | "automatic">("manual");
+const size = ref<VehicleLength>("standard");
+const transmission = ref<VehicleTransmission>("manual");
+const vehicleType = ref<VehicleType>("panelvan");
 const highlightFeatures = ref<SelectedFeature[]>([]);
 
-function handleApply(features: SelectedFeature[]) {
-  highlightFeatures.value = features.slice(0, 5);
+function normalizeLength(length?: string): VehicleLength {
+  switch (length?.toLowerCase()) {
+    case "long":
+      return "long";
+    case "extralong":
+      return "extralong";
+    default:
+      return "standard";
+  }
 }
 
-const tdImage = computed(
-  () =>
-    new URL(
-      `./assets/td-combinations/${size.value}-${transmission.value}.jpeg`,
-      import.meta.url,
-    ).href,
-);
+function normalizeTransmission(
+  transmissionValue?: string,
+): VehicleTransmission {
+  switch (transmissionValue?.toLowerCase()) {
+    case "automatic":
+      return "automatic";
+    default:
+      return "manual";
+  }
+}
+
+function normalizeVehicleType(type?: string): VehicleType {
+  switch (type?.toLowerCase()) {
+    case "mpv":
+      return "mpv";
+    default:
+      return "panelvan";
+  }
+}
+
+function handleApply(payload: ApplyPayload) {
+  highlightFeatures.value = payload.features.slice(0, 5);
+
+  if (!payload.vehicle) return;
+
+  size.value = normalizeLength(payload.vehicle.length);
+  transmission.value = normalizeTransmission(payload.vehicle.transmission);
+  vehicleType.value = normalizeVehicleType(payload.vehicle.type);
+}
+
+const tdImage = computed(() => {
+  return new URL(
+    `./assets/td-combinations/${vehicleType.value}-${size.value}-${transmission.value}.jpeg`,
+    import.meta.url,
+  ).href;
+});
 </script>
 
 <template>
   <main class="page">
     <div class="hero-frame" @click="modalOpen = true" style="cursor: pointer">
       <img
-        src="./assets/stage.jpg"
+        src="./assets/panelvan-stage.jpg"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
       />

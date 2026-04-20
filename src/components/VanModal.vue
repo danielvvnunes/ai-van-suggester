@@ -15,18 +15,33 @@ type ApiFeature = {
   selected: boolean;
 };
 
+export type ApiVehicle = {
+  length: string;
+  transmission: string;
+  type: string;
+};
+
 type ApiResponse = {
   selection: ApiFeature[];
   all: ApiFeature[];
+  vehicle?: ApiVehicle;
 };
 
-export type SelectedFeature = { id: string; label: string };
+export type SelectedFeature = {
+  id: string;
+  label: string;
+};
+
+export type ApplyPayload = {
+  features: SelectedFeature[];
+  vehicle: ApiVehicle | null;
+};
 
 defineProps<{ open: boolean }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (e: "apply", features: SelectedFeature[]): void;
+  (e: "apply", payload: ApplyPayload): void;
 }>();
 
 const step = ref(1);
@@ -40,6 +55,7 @@ const selectionFeatures = ref<ApiFeature[]>([]);
 const allFeatures = ref<ApiFeature[]>([]);
 const selectedFeatureIds = ref<Set<string>>(new Set());
 const dropdownValue = ref("");
+const vehicle = ref<ApiVehicle | null>(null);
 
 const purposesWithImages = computed(() =>
   (purposes as Purpose[]).map((purpose) => ({
@@ -58,6 +74,7 @@ const selectedPurposeLabels = computed(() =>
 
 function togglePurpose(id: string) {
   const index = selectedPurposes.value.indexOf(id);
+
   if (index === -1) {
     selectedPurposes.value.push(id);
   } else {
@@ -66,33 +83,39 @@ function togglePurpose(id: string) {
 }
 
 function toggleSelectionFeature(id: string) {
-  if (selectedFeatureIds.value.has(id)) {
-    selectedFeatureIds.value.delete(id);
+  const next = new Set(selectedFeatureIds.value);
+
+  if (next.has(id)) {
+    next.delete(id);
   } else {
-    selectedFeatureIds.value.add(id);
+    next.add(id);
   }
+
+  selectedFeatureIds.value = next;
 }
 
 function onDropdownChange() {
   const id = dropdownValue.value;
   if (!id) return;
-  selectedFeatureIds.value.add(id);
+
+  const next = new Set(selectedFeatureIds.value);
+  next.add(id);
+  selectedFeatureIds.value = next;
   dropdownValue.value = "";
 }
 
-// Features visible as pills = selectionFeatures + any user-added from "all" not already in selection
 const extraFeatures = computed(() =>
   allFeatures.value.filter(
-    (f) =>
-      selectedFeatureIds.value.has(f.id) &&
-      !selectionFeatures.value.some((s) => s.id === f.id),
+    (feature) =>
+      selectedFeatureIds.value.has(feature.id) &&
+      !selectionFeatures.value.some((selected) => selected.id === feature.id),
   ),
 );
 
-// Dropdown options = "all" items not already shown as pills in selectionFeatures
 const dropdownOptions = computed(() =>
   allFeatures.value.filter(
-    (f) => !selectionFeatures.value.some((s) => s.id === f.id),
+    (feature) =>
+      !selectionFeatures.value.some((selected) => selected.id === feature.id),
   ),
 );
 
@@ -103,21 +126,23 @@ async function goToStep2() {
   apiError.value = null;
 
   try {
-    const chosenPurposes = (purposes as Purpose[]).filter((p) =>
-      selectedPurposes.value.includes(p.id),
+    const chosenPurposes = (purposes as Purpose[]).filter((purpose) =>
+      selectedPurposes.value.includes(purpose.id),
     );
 
     const usecases: { name: string; description: string }[] =
-      chosenPurposes.map((p) => ({
-        name: p.name,
-        description: p.description,
+      chosenPurposes.map((purpose) => ({
+        name: purpose.name,
+        description: purpose.description,
       }));
+
     if (customPurpose.value.trim()) {
       usecases.push({
         name: "Custom",
         description: customPurpose.value.trim(),
       });
     }
+
     const payload = { usecases };
 
     const response = await fetch(
@@ -135,26 +160,31 @@ async function goToStep2() {
 
     const data: ApiResponse = await response.json();
 
+    console.log("API response:", data);
+
     selectionFeatures.value = data.selection;
     allFeatures.value = data.all;
+    vehicle.value = data.vehicle ?? null;
 
-    const preSelected = new Set(
-      data.selection.filter((f) => f.selected).map((f) => f.id),
+    selectedFeatureIds.value = new Set(
+      data.selection
+        .filter((feature) => feature.selected)
+        .map((feature) => feature.id),
     );
-    selectedFeatureIds.value = preSelected;
   } catch (error) {
     apiError.value =
       error instanceof Error ? error.message : "Failed to reach API.";
     selectionFeatures.value = [];
     allFeatures.value = [];
     selectedFeatureIds.value = new Set();
+    vehicle.value = null;
   } finally {
     apiLoading.value = false;
     step.value = 2;
   }
 }
 
-function close() {
+function resetState() {
   step.value = 1;
   selectedPurposes.value = [];
   customPurpose.value = "";
@@ -164,16 +194,31 @@ function close() {
   allFeatures.value = [];
   selectedFeatureIds.value = new Set();
   dropdownValue.value = "";
+  vehicle.value = null;
+}
+
+function close() {
+  resetState();
   emit("close");
 }
 
 function finish() {
-  const allVisible = [...selectionFeatures.value, ...extraFeatures.value];
-  const selected = allVisible.filter((f) => selectedFeatureIds.value.has(f.id));
-  emit(
-    "apply",
-    selected.map((f) => ({ id: f.id, label: f.label })),
-  );
+  const allVisibleFeatures = [
+    ...selectionFeatures.value,
+    ...extraFeatures.value,
+  ];
+  const selectedFeatures = allVisibleFeatures
+    .filter((feature) => selectedFeatureIds.value.has(feature.id))
+    .map((feature) => ({
+      id: feature.id,
+      label: feature.label,
+    }));
+
+  emit("apply", {
+    features: selectedFeatures,
+    vehicle: vehicle.value,
+  });
+
   close();
 }
 </script>
@@ -197,6 +242,7 @@ function finish() {
               <span class="star-icon">✦</span>
               What is the main purpose of your Vito panel van?
             </h2>
+
             <p class="modal-subtitle">
               Choose one or more options. Your answers will help us understand
               what you're looking for.
@@ -223,6 +269,7 @@ function finish() {
               <label class="custom-purpose-label" for="custom-purpose">
                 Anything else you'd like us to know?
               </label>
+
               <textarea
                 id="custom-purpose"
                 v-model="customPurpose"
@@ -252,6 +299,7 @@ function finish() {
               What do you particularly value in the Vito panel van? What must it
               fulfil to best support your working day?
             </h2>
+
             <p class="modal-subtitle">
               Choose one or more options. Your answers will help us understand
               what you're looking for.
@@ -290,6 +338,7 @@ function finish() {
 
             <div class="search-box">
               <span class="search-icon">🔍</span>
+
               <select
                 v-model="dropdownValue"
                 class="search-select"
@@ -306,6 +355,7 @@ function finish() {
                   {{ option.label }}
                 </option>
               </select>
+
               <span class="search-caret">▼</span>
             </div>
           </div>
