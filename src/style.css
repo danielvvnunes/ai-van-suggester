@@ -10,3 +10,11 @@ body,
 #app {
   max-width: none;
 }
+
+body {
+  font-family:
+    "MB Corpo",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}

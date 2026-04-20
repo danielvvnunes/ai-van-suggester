@@ -274,8 +274,8 @@ function finish() {
                 id="custom-purpose"
                 v-model="customPurpose"
                 class="custom-purpose-textarea"
-                placeholder="Describe your specific needs or use case…"
-                rows="3"
+                placeholder="Tell us more about your day-to-day needs, payload, routes, passengers, loading habits or anything else relevant..."
+                rows="5"
               />
             </div>
           </div>
@@ -501,35 +501,48 @@ function finish() {
 }
 
 .custom-purpose-wrapper {
-  margin-top: 20px;
+  margin-top: 32px;
 }
 
 .custom-purpose-label {
   display: block;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
-  color: #444;
-  margin-bottom: 6px;
+  color: #111;
+  margin-bottom: 12px;
+  line-height: 1.4;
 }
 
 .custom-purpose-textarea {
   width: 100%;
+  min-height: 148px;
   box-sizing: border-box;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 10px 12px;
-  font-size: 13px;
+  border: 1px solid #e3e3e3;
+  border-radius: 12px;
+  padding: 18px 20px;
+  font-size: 14px;
+  line-height: 1.65;
   color: #111;
   resize: vertical;
   font-family: inherit;
-  background: #fafafa;
-  transition: border-color 0.15s;
+  background: linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.custom-purpose-textarea::placeholder {
+  color: #919191;
 }
 
 .custom-purpose-textarea:focus {
   outline: none;
-  border-color: #0078d4;
-  background: #fff;
+  border-color: #c7c7c7;
+  box-shadow:
+    0 0 0 4px rgba(0, 0, 0, 0.035),
+    0 6px 18px rgba(0, 0, 0, 0.04);
 }
 
 .modal-footer {
