@@ -4,9 +4,9 @@ import purposes from "../data/purpose_of_vehicle.json";
 
 type Purpose = {
   id: string;
-  title: string;
+  name: string;
   image: string;
-  desc: string;
+  description: string;
 };
 
 type ApiFeature = {
@@ -31,6 +31,7 @@ const emit = defineEmits<{
 
 const step = ref(1);
 const selectedPurposes = ref<string[]>([]);
+const customPurpose = ref("");
 const apiLoading = ref(false);
 const apiError = ref<string | null>(null);
 
@@ -51,7 +52,7 @@ const purposesWithImages = computed(() =>
 const selectedPurposeLabels = computed(() =>
   (purposes as Purpose[])
     .filter((p) => selectedPurposes.value.includes(p.id))
-    .map((p) => p.title)
+    .map((p) => p.name)
     .join(" - "),
 );
 
@@ -106,13 +107,18 @@ async function goToStep2() {
       selectedPurposes.value.includes(p.id),
     );
 
-    const payload = {
-      usecases: chosenPurposes.map((p) => ({ name: p.title, desc: p.desc })),
-    };
-
-    // ====================================
-    // Uncomment after backend is readonly
-    // ====================================
+    const usecases: { name: string; description: string }[] =
+      chosenPurposes.map((p) => ({
+        name: p.name,
+        description: p.description,
+      }));
+    if (customPurpose.value.trim()) {
+      usecases.push({
+        name: "Custom",
+        description: customPurpose.value.trim(),
+      });
+    }
+    const payload = { usecases };
 
     const response = await fetch(
       "https://dev.api.oneweb.mercedes-benz.com/vans/equipment/search/api/filter-options",
@@ -128,41 +134,6 @@ async function goToStep2() {
     }
 
     const data: ApiResponse = await response.json();
-
-    // ====================================
-
-    console.log("API payload:", payload);
-
-    // Mock API response — replace with real fetch when API is ready
-    // await new Promise((resolve) => setTimeout(resolve, 600));
-    // const data: ApiResponse = {
-    //   selection: [
-    //     { id: "roof-rails", label: "Roof rails", selected: true },
-    //     { id: "parking-assist", label: "Parking assist", selected: true },
-    //     { id: "cruise-control", label: "Cruise control", selected: false },
-    //     { id: "3-seats", label: "3 seats", selected: true },
-    //     { id: "climate-control", label: "Climate control", selected: false },
-    //     { id: "navigation", label: "Navigation system", selected: true },
-    //     { id: "cargo-liner", label: "Cargo liner", selected: false },
-    //     { id: "tow-bar", label: "Tow bar", selected: false },
-    //     { id: "led-lights", label: "LED headlights", selected: true },
-    //     { id: "keyless-entry", label: "Keyless entry", selected: false },
-    //   ],
-    //   all: [
-    //     { id: "apple-carplay", label: "Apple CarPlay", selected: false },
-    //     { id: "android-auto", label: "Android Auto", selected: false },
-    //     { id: "360-camera", label: "360° camera", selected: false },
-    //     { id: "blind-spot", label: "Blind spot assist", selected: false },
-    //     { id: "heated-seats", label: "Heated seats", selected: false },
-    //     { id: "lane-assist", label: "Lane keeping assist", selected: false },
-    //     { id: "rear-camera", label: "Rear view camera", selected: false },
-    //     { id: "ambient-light", label: "Ambient lighting", selected: false },
-    //     { id: "usb-c", label: "USB-C charging ports", selected: false },
-    //     { id: "roof-rack", label: "Roof rack", selected: false },
-    //     { id: "partition-wall", label: "Partition wall", selected: false },
-    //     { id: "sliding-door", label: "Electric sliding door", selected: false },
-    //   ],
-    // };
 
     selectionFeatures.value = data.selection;
     allFeatures.value = data.all;
@@ -186,6 +157,7 @@ async function goToStep2() {
 function close() {
   step.value = 1;
   selectedPurposes.value = [];
+  customPurpose.value = "";
   apiLoading.value = false;
   apiError.value = null;
   selectionFeatures.value = [];
@@ -240,11 +212,24 @@ function finish() {
               >
                 <img
                   :src="purpose.image"
-                  :alt="purpose.title"
+                  :alt="purpose.name"
                   class="purpose-img"
                 />
-                <span class="purpose-label">{{ purpose.title }}</span>
+                <span class="purpose-label">{{ purpose.name }}</span>
               </button>
+            </div>
+
+            <div class="custom-purpose-wrapper">
+              <label class="custom-purpose-label" for="custom-purpose">
+                Anything else you'd like us to know?
+              </label>
+              <textarea
+                id="custom-purpose"
+                v-model="customPurpose"
+                class="custom-purpose-textarea"
+                placeholder="Describe your specific needs or use case…"
+                rows="3"
+              />
             </div>
           </div>
 
@@ -463,6 +448,38 @@ function finish() {
   font-weight: 500;
   color: #111;
   line-height: 1.3;
+}
+
+.custom-purpose-wrapper {
+  margin-top: 20px;
+}
+
+.custom-purpose-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #444;
+  margin-bottom: 6px;
+}
+
+.custom-purpose-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #111;
+  resize: vertical;
+  font-family: inherit;
+  background: #fafafa;
+  transition: border-color 0.15s;
+}
+
+.custom-purpose-textarea:focus {
+  outline: none;
+  border-color: #0078d4;
+  background: #fff;
 }
 
 .modal-footer {

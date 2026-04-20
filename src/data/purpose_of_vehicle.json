@@ -1,50 +1,50 @@
 [
   {
     "id": "urban",
-    "title": "Urban & City Use",
+    "name": "Urban & City Use",
     "image": "urban.png",
-    "desc": "Daily driving in cities and densely populated areas, including short-distance deliveries, stop-and-go traffic, tight parking situations, and frequent loading and unloading in urban environments."
+    "description": "Daily driving in cities and densely populated areas, including short-distance deliveries, stop-and-go traffic, tight parking situations, and frequent loading and unloading in urban environments."
   },
   {
     "id": "intercity",
-    "title": "Intercity & Long-Distance Driving",
+    "name": "Intercity & Long-Distance Driving",
     "image": "intercity.jpg",
-    "desc": "Regular highway and long-distance journeys between cities or regions, prioritising driver comfort, fuel efficiency, cruise control, and extended range for professional or personal travel."
+    "description": "Regular highway and long-distance journeys between cities or regions, prioritising driver comfort, fuel efficiency, cruise control, and extended range for professional or personal travel."
   },
   {
     "id": "transport",
-    "title": "Transport of People & Materials",
+    "name": "Transport of People & Materials",
     "image": "transport.png",
-    "desc": "Moving passengers or mixed loads of people and cargo, requiring flexible seating configurations, easy access, safety features, and sufficient cargo space for tools, equipment or luggage."
+    "description": "Moving passengers or mixed loads of people and cargo, requiring flexible seating configurations, easy access, safety features, and sufficient cargo space for tools, equipment or luggage."
   },
   {
     "id": "heavy",
-    "title": "Heavy-Duty & Job-Site Use",
+    "name": "Heavy-Duty & Job-Site Use",
     "image": "heavy.png",
-    "desc": "Operating on construction sites, industrial premises, or rough terrain where the vehicle must carry heavy tools, withstand demanding conditions, and provide robust load capacity and durability."
+    "description": "Operating on construction sites, industrial premises, or rough terrain where the vehicle must carry heavy tools, withstand demanding conditions, and provide robust load capacity and durability."
   },
   {
     "id": "delivery",
-    "title": "Delivery & Logistics Scenarios",
+    "name": "Delivery & Logistics Scenarios",
     "image": "delivery.jpg",
-    "desc": "Last-mile and regional delivery operations including parcel, food, or goods distribution, where cargo volume, quick loading access, route efficiency, and low total cost of ownership are critical."
+    "description": "Last-mile and regional delivery operations including parcel, food, or goods distribution, where cargo volume, quick loading access, route efficiency, and low total cost of ownership are critical."
   },
   {
     "id": "mobile",
-    "title": "Mobile Workspace",
+    "name": "Mobile Workspace",
     "image": "mobile.png",
-    "desc": "Using the van as a fully equipped office or workshop on wheels, enabling technicians, field sales teams, or service professionals to work productively while on the road between appointments."
+    "description": "Using the van as a fully equipped office or workshop on wheels, enabling technicians, field sales teams, or service professionals to work productively while on the road between appointments."
   },
   {
     "id": "challenging",
-    "title": "Challenging Terrain & Weather",
+    "name": "Challenging Terrain & Weather",
     "image": "challenging.png",
-    "desc": "Driving in extreme weather conditions or off-road environments such as snow, mud, steep gradients, or unpaved tracks, requiring all-wheel drive, enhanced traction control, and robust underbody protection."
+    "description": "Driving in extreme weather conditions or off-road environments such as snow, mud, steep gradients, or unpaved tracks, requiring all-wheel drive, enhanced traction control, and robust underbody protection."
   },
   {
     "id": "general",
-    "title": "General Business Use",
+    "name": "General Business Use",
     "image": "general.png",
-    "desc": "Versatile everyday business operations covering a mix of transport, client visits, light deliveries, and errands, where reliability, low running costs, and a professional appearance matter most."
+    "description": "Versatile everyday business operations covering a mix of transport, client visits, light deliveries, and errands, where reliability, low running costs, and a professional appearance matter most."
   }
 ]
