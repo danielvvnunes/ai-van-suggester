@@ -24,6 +24,11 @@ function handleApply(payload: ApplyPayload) {
   vehicleType.value = payload.vehicle.type.toLowerCase() as VehicleType;
 }
 
+const stageImage = computed(
+  () =>
+    new URL(`./assets/${vehicleType.value}-stage.jpg`, import.meta.url).href,
+);
+
 const tdImage = computed(
   () =>
     new URL(
@@ -37,7 +42,7 @@ const tdImage = computed(
   <main class="page">
     <div class="hero-frame">
       <img
-        src="./assets/panelvan-stage.jpg"
+        :src="stageImage"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
         @click="modalOpen = true"

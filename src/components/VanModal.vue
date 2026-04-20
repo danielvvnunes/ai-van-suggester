@@ -275,7 +275,7 @@ function finish() {
                 v-model="customPurpose"
                 class="custom-purpose-textarea"
                 placeholder="Tell us more about your day-to-day needs, payload, routes, passengers, loading habits or anything else relevant..."
-                rows="5"
+                rows="3"
               />
             </div>
           </div>
