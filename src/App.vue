@@ -13,57 +13,15 @@ const transmission = ref<VehicleTransmission>("manual");
 const vehicleType = ref<VehicleType>("panelvan");
 const highlightFeatures = ref<SelectedFeature[]>([]);
 
-function normalizeLength(length?: string): VehicleLength {
-  switch (length?.toLowerCase()) {
-    case "long":
-      return "long";
-    case "extralong":
-      return "extralong";
-    case "standard":
-    default:
-      return "standard";
-  }
-}
-
-function normalizeTransmission(
-  transmissionValue?: string,
-): VehicleTransmission {
-  switch (transmissionValue?.toLowerCase()) {
-    case "automatic":
-      return "automatic";
-    case "manual":
-    default:
-      return "manual";
-  }
-}
-
-function normalizeVehicleType(type?: string): VehicleType {
-  switch (type?.toLowerCase()) {
-    case "chassis":
-      return "chassis";
-    case "tourer":
-      return "tourer";
-    case "panelvan":
-    default:
-      return "panelvan";
-  }
-}
-
 function handleApply(payload: ApplyPayload) {
   highlightFeatures.value = payload.features.slice(0, 5);
 
   if (!payload.vehicle) return;
 
-  size.value = normalizeLength(payload.vehicle.length);
-  transmission.value = normalizeTransmission(payload.vehicle.transmission);
-  vehicleType.value = normalizeVehicleType(payload.vehicle.type);
-
-  console.log("Applied configuration:", {
-    size: size.value,
-    transmission: transmission.value,
-    vehicleType: vehicleType.value,
-    features: highlightFeatures.value,
-  });
+  size.value = payload.vehicle.length.toLowerCase() as VehicleLength;
+  transmission.value =
+    payload.vehicle.transmission.toLowerCase() as VehicleTransmission;
+  vehicleType.value = payload.vehicle.type.toLowerCase() as VehicleType;
 }
 
 const tdImage = computed(
