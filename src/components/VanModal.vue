@@ -240,7 +240,7 @@ function finish() {
           <div class="modal-body">
             <h2 class="modal-title">
               <span class="star-icon">✦</span>
-              What is the main purpose of your Vito panel van?
+              What is the main purpose of your Sprinter?
             </h2>
 
             <p class="modal-subtitle">
@@ -296,7 +296,7 @@ function finish() {
           <div class="modal-body">
             <h2 class="modal-title">
               <span class="star-icon">✦</span>
-              What do you particularly value in the Vito panel van? What must it
+              What do you particularly value in the Sprinter? What must it
               fulfil to best support your working day?
             </h2>
 
@@ -362,7 +362,7 @@ function finish() {
 
           <div class="modal-footer step2-footer">
             <button class="continue-btn" @click="finish">
-              Continue to your Vito Panel Van
+              Continue to your Sprinter
             </button>
           </div>
         </template>
