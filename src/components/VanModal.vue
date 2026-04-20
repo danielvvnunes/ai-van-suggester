@@ -1,6 +1,41 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch, onBeforeUnmount } from "vue";
 import purposes from "../data/purpose_of_vehicle.json";
+
+const props = defineProps<{ open: boolean }>();
+
+let previousBodyOverflow = "";
+let previousBodyTouchAction = "";
+
+function lockBodyScroll() {
+  if (typeof document === "undefined") return;
+
+  previousBodyOverflow = document.body.style.overflow;
+  previousBodyTouchAction = document.body.style.touchAction;
+
+  document.body.style.overflow = "hidden";
+  document.body.style.touchAction = "none";
+}
+
+function unlockBodyScroll() {
+  if (typeof document === "undefined") return;
+
+  document.body.style.overflow = previousBodyOverflow;
+  document.body.style.touchAction = previousBodyTouchAction;
+}
+
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) lockBodyScroll();
+    else unlockBodyScroll();
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  unlockBodyScroll();
+});
 
 type Purpose = {
   id: string;
@@ -47,8 +82,6 @@ export type ApplyPayload = {
   features: SelectedFeature[];
   vehicle: ApiVehicle | null;
 };
-
-defineProps<{ open: boolean }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
@@ -122,23 +155,22 @@ const purposesWithImages = computed(() =>
 
 const selectedPurposeLabels = computed(() =>
   (purposes as Purpose[])
-    .filter((purpose) => selectedPurposes.value.includes(purpose.id))
-    .map((purpose) => purpose.name)
+    .filter((p) => selectedPurposes.value.includes(p.id))
+    .map((p) => p.name)
     .join(" - "),
 );
 
 const extraFeatures = computed(() =>
   allFeatures.value.filter(
-    (feature) =>
-      selectedFeatureIds.value.has(feature.id) &&
-      !selectionFeatures.value.some((selected) => selected.id === feature.id),
+    (f) =>
+      selectedFeatureIds.value.has(f.id) &&
+      !selectionFeatures.value.some((s) => s.id === f.id),
   ),
 );
 
 const dropdownOptions = computed(() =>
   allFeatures.value.filter(
-    (feature) =>
-      !selectionFeatures.value.some((selected) => selected.id === feature.id),
+    (f) => !selectionFeatures.value.some((s) => s.id === f.id),
   ),
 );
 
@@ -164,13 +196,10 @@ const filteredGroupedOptions = computed(() => {
   const groups = new Map<FeatureCategory, ApiFeature[]>();
 
   for (const feature of limited) {
-    const category = feature.category;
-
-    if (!groups.has(category)) {
-      groups.set(category, []);
+    if (!groups.has(feature.category)) {
+      groups.set(feature.category, []);
     }
-
-    groups.get(category)!.push(feature);
+    groups.get(feature.category)!.push(feature);
   }
 
   return Array.from(groups.entries()).map(([category, features]) => ({
@@ -180,23 +209,16 @@ const filteredGroupedOptions = computed(() => {
 });
 
 function togglePurpose(id: string) {
-  const index = selectedPurposes.value.indexOf(id);
+  const i = selectedPurposes.value.indexOf(id);
 
-  if (index === -1) {
-    selectedPurposes.value.push(id);
-  } else {
-    selectedPurposes.value.splice(index, 1);
-  }
+  if (i === -1) selectedPurposes.value.push(id);
+  else selectedPurposes.value.splice(i, 1);
 }
 
 function toggleSelectionFeature(id: string) {
   const next = new Set(selectedFeatureIds.value);
 
-  if (next.has(id)) {
-    next.delete(id);
-  } else {
-    next.add(id);
-  }
+  next.has(id) ? next.delete(id) : next.add(id);
 
   selectedFeatureIds.value = next;
 }
@@ -215,15 +237,14 @@ async function goToStep2() {
   apiError.value = null;
 
   try {
-    const chosenPurposes = (purposes as Purpose[]).filter((purpose) =>
-      selectedPurposes.value.includes(purpose.id),
+    const chosenPurposes = (purposes as Purpose[]).filter((p) =>
+      selectedPurposes.value.includes(p.id),
     );
 
-    const usecases: { name: string; description: string }[] =
-      chosenPurposes.map((purpose) => ({
-        name: purpose.name,
-        description: purpose.description,
-      }));
+    const usecases = chosenPurposes.map((p) => ({
+      name: p.name,
+      description: p.description,
+    }));
 
     if (customPurpose.value.trim()) {
       usecases.push({
@@ -232,14 +253,14 @@ async function goToStep2() {
       });
     }
 
-    const payload = { usecases };
-
     const response = await fetch(
       "https://dev.api.oneweb.mercedes-benz.com/vans/equipment/search/api/filter-options",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ usecases }),
       },
     );
 
@@ -254,13 +275,12 @@ async function goToStep2() {
     vehicle.value = data.vehicle ?? null;
 
     selectedFeatureIds.value = new Set(
-      data.selection
-        .filter((feature) => feature.selected)
-        .map((feature) => feature.id),
+      data.selection.filter((f) => f.selected).map((f) => f.id),
     );
   } catch (error) {
     apiError.value =
       error instanceof Error ? error.message : "Failed to reach API.";
+
     selectionFeatures.value = [];
     allFeatures.value = [];
     selectedFeatureIds.value = new Set();
@@ -290,16 +310,11 @@ function close() {
 }
 
 function finish() {
-  const allVisibleFeatures = [
-    ...selectionFeatures.value,
-    ...extraFeatures.value,
-  ];
-
-  const selectedFeatures = allVisibleFeatures
-    .filter((feature) => selectedFeatureIds.value.has(feature.id))
-    .map((feature) => ({
-      id: feature.id,
-      label: feature.displayLabel,
+  const selectedFeatures = [...selectionFeatures.value, ...extraFeatures.value]
+    .filter((f) => selectedFeatureIds.value.has(f.id))
+    .map((f) => ({
+      id: f.id,
+      label: f.displayLabel,
     }));
 
   emit("apply", {
@@ -313,170 +328,203 @@ function finish() {
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="modal-backdrop" @click.self="close">
-      <div class="modal" role="dialog" aria-modal="true">
-        <div class="progress-bar">
-          <div
-            class="progress-fill"
-            :style="{ width: step === 1 ? '40%' : '80%' }"
-          />
-        </div>
-
-        <button class="close-btn" aria-label="Close" @click="close">✕</button>
-
-        <template v-if="step === 1">
-          <div class="modal-body">
-            <h2 class="modal-title">
-              <span class="star-icon">✦</span>
-              What is the main purpose of your Sprinter?
-            </h2>
-
-            <p class="modal-subtitle">
-              Choose one or more options. Your answers will help us understand
-              what you're looking for.
-            </p>
-
-            <div class="purpose-grid">
-              <button
-                v-for="purpose in purposesWithImages"
-                :key="purpose.id"
-                class="purpose-card"
-                :class="{ selected: selectedPurposes.includes(purpose.id) }"
-                @click="togglePurpose(purpose.id)"
-              >
-                <img
-                  :src="purpose.image"
-                  :alt="purpose.name"
-                  class="purpose-img"
-                />
-                <span class="purpose-label">{{ purpose.name }}</span>
-              </button>
-            </div>
-
-            <div class="custom-purpose-wrapper">
-              <label class="custom-purpose-label" for="custom-purpose">
-                Anything else you'd like us to know?
-              </label>
-
-              <textarea
-                id="custom-purpose"
-                v-model="customPurpose"
-                class="custom-purpose-textarea"
-                placeholder="Tell us more about your day-to-day needs, payload, routes, passengers, loading habits or anything else relevant..."
-                rows="3"
-              />
-            </div>
+    <Transition name="modal-fade">
+      <div v-if="props.open" class="modal-backdrop" @click.self="close">
+        <div class="modal" role="dialog" aria-modal="true">
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              :style="{ width: step === 1 ? '40%' : '80%' }"
+            />
           </div>
 
-          <div class="modal-footer step1-footer">
-            <button
-              class="continue-link"
-              :disabled="!canContinueToStep2 || apiLoading"
-              @click="goToStep2"
-            >
-              <span v-if="apiLoading" class="spinner" />
-              <span v-else>› Continue</span>
-            </button>
-          </div>
-        </template>
+          <button class="close-btn" aria-label="Close" @click="close">✕</button>
 
-        <template v-else>
-          <div class="modal-body">
-            <h2 class="modal-title">
-              <span class="star-icon">✦</span>
-              What do you particularly value in the Sprinter? What must it
-              fulfil to best support your working day?
-            </h2>
+          <template v-if="step === 1">
+            <div class="modal-body">
+              <h2 class="modal-title">
+                <span class="star-icon">✦</span>
+                What is the main purpose of your Sprinter?
+              </h2>
 
-            <p class="modal-subtitle">
-              Choose one or more options. Your answers will help us understand
-              what you're looking for.
-            </p>
+              <p class="modal-subtitle">
+                Choose one or more options. Your answers will help us understand
+                what you're looking for.
+              </p>
 
-            <p class="recommended-label">
-              Recommended features for {{ selectedPurposeLabels }}
-            </p>
-
-            <div v-if="apiError" class="api-error">
-              ⚠ Could not load recommendations: {{ apiError }}
-            </div>
-
-            <div class="feature-pills">
-              <button
-                v-for="feature in selectionFeatures"
-                :key="feature.id"
-                class="pill"
-                :class="{ selected: selectedFeatureIds.has(feature.id) }"
-                @click="toggleSelectionFeature(feature.id)"
-              >
-                {{ feature.displayLabel }}
-                <span class="pill-circle" />
-              </button>
-
-              <button
-                v-for="feature in extraFeatures"
-                :key="feature.id"
-                class="pill selected"
-                @click="toggleSelectionFeature(feature.id)"
-              >
-                {{ feature.displayLabel }}
-                <span class="pill-circle" />
-              </button>
-            </div>
-
-            <div class="equipment-search">
-              <div class="equipment-search-input">
-                <span class="search-icon">🔍</span>
-
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  placeholder="Search equipment"
-                />
+              <div class="purpose-grid">
+                <button
+                  v-for="purpose in purposesWithImages"
+                  :key="purpose.id"
+                  class="purpose-card"
+                  :class="{ selected: selectedPurposes.includes(purpose.id) }"
+                  @click="togglePurpose(purpose.id)"
+                >
+                  <img
+                    :src="purpose.image"
+                    :alt="purpose.name"
+                    class="purpose-img"
+                  />
+                  <span class="purpose-label">{{ purpose.name }}</span>
+                </button>
               </div>
 
-              <div
-                v-if="filteredGroupedOptions.length"
-                class="equipment-search-results"
-              >
-                <div
-                  v-for="group in filteredGroupedOptions"
-                  :key="group.category"
-                  class="equipment-category-group"
-                >
-                  <p class="equipment-category-title">
-                    {{ group.category }}
-                  </p>
+              <div class="custom-purpose-wrapper">
+                <label class="custom-purpose-label" for="custom-purpose">
+                  Anything else you'd like us to know?
+                </label>
 
-                  <button
-                    v-for="option in group.features"
-                    :key="option.id"
-                    class="equipment-option"
-                    @click="addFeature(option.id)"
+                <textarea
+                  id="custom-purpose"
+                  v-model="customPurpose"
+                  class="custom-purpose-textarea"
+                  placeholder="Tell us more about your day-to-day needs, payload, routes, passengers, loading habits or anything else relevant..."
+                  rows="3"
+                />
+              </div>
+            </div>
+
+            <div class="modal-footer step1-footer">
+              <button
+                class="continue-link"
+                :disabled="!canContinueToStep2 || apiLoading"
+                @click="goToStep2"
+              >
+                <span v-if="apiLoading" class="spinner" />
+                <span v-else>› Continue</span>
+              </button>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="modal-body">
+              <h2 class="modal-title">
+                <span class="star-icon">✦</span>
+                What do you particularly value in the Sprinter? What must it
+                fulfil to best support your working day?
+              </h2>
+
+              <p class="modal-subtitle">
+                Choose one or more options. Your answers will help us understand
+                what you're looking for.
+              </p>
+
+              <p class="recommended-label">
+                Recommended features for {{ selectedPurposeLabels }}
+              </p>
+
+              <div v-if="apiError" class="api-error">
+                ⚠ Could not load recommendations: {{ apiError }}
+              </div>
+
+              <div class="feature-pills">
+                <button
+                  v-for="feature in selectionFeatures"
+                  :key="feature.id"
+                  class="pill"
+                  :class="{ selected: selectedFeatureIds.has(feature.id) }"
+                  @click="toggleSelectionFeature(feature.id)"
+                >
+                  {{ feature.displayLabel }}
+                  <span class="pill-circle" />
+                </button>
+
+                <button
+                  v-for="feature in extraFeatures"
+                  :key="feature.id"
+                  class="pill selected"
+                  @click="toggleSelectionFeature(feature.id)"
+                >
+                  {{ feature.displayLabel }}
+                  <span class="pill-circle" />
+                </button>
+              </div>
+
+              <div class="equipment-search">
+                <div class="equipment-search-input">
+                  <span class="search-icon">🔍</span>
+
+                  <input
+                    v-model="searchQuery"
+                    type="text"
+                    placeholder="Search equipment"
+                  />
+                </div>
+
+                <div
+                  v-if="filteredGroupedOptions.length"
+                  class="equipment-search-results"
+                >
+                  <div
+                    v-for="group in filteredGroupedOptions"
+                    :key="group.category"
+                    class="equipment-category-group"
                   >
-                    {{ option.displayLabel }}
-                  </button>
+                    <p class="equipment-category-title">
+                      {{ group.category }}
+                    </p>
+
+                    <button
+                      v-for="option in group.features"
+                      :key="option.id"
+                      class="equipment-option"
+                      @click="addFeature(option.id)"
+                    >
+                      {{ option.displayLabel }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <div class="modal-footer step2-footer">
-            <button class="continue-btn" @click="finish">
-              Continue to your Sprinter
-            </button>
-          </div>
-        </template>
+            <div class="modal-footer step2-footer">
+              <button class="continue-btn" @click="finish">
+                Continue to your Sprinter
+              </button>
+            </div>
+          </template>
+        </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
 
 <style scoped>
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
+
+.modal-fade-enter-active .modal,
+.modal-fade-leave-active .modal {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-from .modal,
+.modal-fade-leave-to .modal {
+  opacity: 0;
+  transform: translateY(8px) scale(0.985);
+}
+
+.modal-fade-enter-to .modal,
+.modal-fade-leave-from .modal {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -486,7 +534,7 @@ function finish() {
 .modal {
   background: #fff;
   border-radius: 4px;
-  width: min(700px, 95vw);
+  width: min(900px, 95vw);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
