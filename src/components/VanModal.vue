@@ -9,10 +9,21 @@ type Purpose = {
   description: string;
 };
 
-type ApiFeature = {
+type FeatureCategory = string;
+
+type RawApiFeature = {
   id: string;
   label: string;
   selected: boolean;
+  category?: FeatureCategory;
+};
+
+type ApiFeature = {
+  id: string;
+  label: string;
+  displayLabel: string;
+  selected: boolean;
+  category: FeatureCategory;
 };
 
 export type ApiVehicle = {
@@ -22,8 +33,8 @@ export type ApiVehicle = {
 };
 
 type ApiResponse = {
-  selection: ApiFeature[];
-  all: ApiFeature[];
+  selection: RawApiFeature[];
+  all: RawApiFeature[];
   vehicle?: ApiVehicle;
 };
 
@@ -50,12 +61,56 @@ const customPurpose = ref("");
 const apiLoading = ref(false);
 const apiError = ref<string | null>(null);
 
-// Step 2 state
 const selectionFeatures = ref<ApiFeature[]>([]);
 const allFeatures = ref<ApiFeature[]>([]);
 const selectedFeatureIds = ref<Set<string>>(new Set());
-const dropdownValue = ref("");
 const vehicle = ref<ApiVehicle | null>(null);
+const searchQuery = ref("");
+
+const preservedTerms = [
+  "MBUX",
+  "ABS",
+  "ESP",
+  "KEP/ABH",
+  "9G-TRONIC",
+  "TEMPOMAT",
+  "ECO",
+  "LED",
+  "DAB",
+  "USB",
+  "ARTICO",
+  "M+S",
+  "HVO",
+  "EC",
+  "EU",
+  "COC",
+  "AEJ",
+  "PSM",
+  "WET WIPER SYSTEM",
+];
+
+function normalizeFeatureLabel(label: string) {
+  let normalized = label
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  for (const term of preservedTerms) {
+    const escapedTerm = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    normalized = normalized.replace(new RegExp(escapedTerm, "gi"), term);
+  }
+
+  return normalized;
+}
+
+function enrichFeature(feature: RawApiFeature): ApiFeature {
+  return {
+    ...feature,
+    displayLabel: normalizeFeatureLabel(feature.label),
+    category: feature.category?.trim() || "Other",
+  };
+}
 
 const purposesWithImages = computed(() =>
   (purposes as Purpose[]).map((purpose) => ({
@@ -67,10 +122,62 @@ const purposesWithImages = computed(() =>
 
 const selectedPurposeLabels = computed(() =>
   (purposes as Purpose[])
-    .filter((p) => selectedPurposes.value.includes(p.id))
-    .map((p) => p.name)
+    .filter((purpose) => selectedPurposes.value.includes(purpose.id))
+    .map((purpose) => purpose.name)
     .join(" - "),
 );
+
+const extraFeatures = computed(() =>
+  allFeatures.value.filter(
+    (feature) =>
+      selectedFeatureIds.value.has(feature.id) &&
+      !selectionFeatures.value.some((selected) => selected.id === feature.id),
+  ),
+);
+
+const dropdownOptions = computed(() =>
+  allFeatures.value.filter(
+    (feature) =>
+      !selectionFeatures.value.some((selected) => selected.id === feature.id),
+  ),
+);
+
+const canContinueToStep2 = computed(
+  () =>
+    selectedPurposes.value.length > 0 || customPurpose.value.trim().length > 0,
+);
+
+const filteredGroupedOptions = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+
+  const filtered = dropdownOptions.value.filter((feature) => {
+    if (!query) return true;
+
+    return (
+      feature.displayLabel.toLowerCase().includes(query) ||
+      feature.category.toLowerCase().includes(query)
+    );
+  });
+
+  const limited = query ? filtered.slice(0, 24) : filtered.slice(0, 18);
+
+  const groups = new Map<FeatureCategory, ApiFeature[]>();
+
+  for (const feature of limited) {
+    const category = feature.category;
+
+    if (!groups.has(category)) {
+      groups.set(category, []);
+    }
+
+    groups.get(category)!.push(feature);
+  }
+
+  return Array.from(groups.entries()).map(([category, features]) => ({
+    category,
+    features,
+  }));
+});
 
 function togglePurpose(id: string) {
   const index = selectedPurposes.value.indexOf(id);
@@ -94,28 +201,16 @@ function toggleSelectionFeature(id: string) {
   selectedFeatureIds.value = next;
 }
 
-const extraFeatures = computed(() =>
-  allFeatures.value.filter(
-    (feature) =>
-      selectedFeatureIds.value.has(feature.id) &&
-      !selectionFeatures.value.some((selected) => selected.id === feature.id),
-  ),
-);
-
-const dropdownOptions = computed(() =>
-  allFeatures.value.filter(
-    (feature) =>
-      !selectionFeatures.value.some((selected) => selected.id === feature.id),
-  ),
-);
-
-const canContinueToStep2 = computed(
-  () =>
-    selectedPurposes.value.length > 0 || customPurpose.value.trim().length > 0,
-);
+function addFeature(id: string) {
+  const next = new Set(selectedFeatureIds.value);
+  next.add(id);
+  selectedFeatureIds.value = next;
+  searchQuery.value = "";
+}
 
 async function goToStep2() {
   if (!canContinueToStep2.value) return;
+
   apiLoading.value = true;
   apiError.value = null;
 
@@ -154,10 +249,8 @@ async function goToStep2() {
 
     const data: ApiResponse = await response.json();
 
-    console.log("API response:", data);
-
-    selectionFeatures.value = data.selection;
-    allFeatures.value = data.all;
+    selectionFeatures.value = data.selection.map(enrichFeature);
+    allFeatures.value = data.all.map(enrichFeature);
     vehicle.value = data.vehicle ?? null;
 
     selectedFeatureIds.value = new Set(
@@ -187,8 +280,8 @@ function resetState() {
   selectionFeatures.value = [];
   allFeatures.value = [];
   selectedFeatureIds.value = new Set();
-  dropdownValue.value = "";
   vehicle.value = null;
+  searchQuery.value = "";
 }
 
 function close() {
@@ -196,37 +289,17 @@ function close() {
   emit("close");
 }
 
-const searchQuery = ref("");
-
-const filteredDropdownOptions = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase();
-
-  if (!query) {
-    return dropdownOptions.value.slice(0, 8);
-  }
-
-  return dropdownOptions.value
-    .filter((feature) => feature.label.toLowerCase().includes(query))
-    .slice(0, 12);
-});
-
-function addFeature(id: string) {
-  const next = new Set(selectedFeatureIds.value);
-  next.add(id);
-  selectedFeatureIds.value = next;
-  searchQuery.value = "";
-}
-
 function finish() {
   const allVisibleFeatures = [
     ...selectionFeatures.value,
     ...extraFeatures.value,
   ];
+
   const selectedFeatures = allVisibleFeatures
     .filter((feature) => selectedFeatureIds.value.has(feature.id))
     .map((feature) => ({
       id: feature.id,
-      label: feature.label,
+      label: feature.displayLabel,
     }));
 
   emit("apply", {
@@ -336,7 +409,7 @@ function finish() {
                 :class="{ selected: selectedFeatureIds.has(feature.id) }"
                 @click="toggleSelectionFeature(feature.id)"
               >
-                {{ feature.label }}
+                {{ feature.displayLabel }}
                 <span class="pill-circle" />
               </button>
 
@@ -346,7 +419,7 @@ function finish() {
                 class="pill selected"
                 @click="toggleSelectionFeature(feature.id)"
               >
-                {{ feature.label }}
+                {{ feature.displayLabel }}
                 <span class="pill-circle" />
               </button>
             </div>
@@ -363,17 +436,27 @@ function finish() {
               </div>
 
               <div
-                v-if="filteredDropdownOptions.length"
+                v-if="filteredGroupedOptions.length"
                 class="equipment-search-results"
               >
-                <button
-                  v-for="option in filteredDropdownOptions"
-                  :key="option.id"
-                  class="equipment-option"
-                  @click="addFeature(option.id)"
+                <div
+                  v-for="group in filteredGroupedOptions"
+                  :key="group.category"
+                  class="equipment-category-group"
                 >
-                  {{ option.label }}
-                </button>
+                  <p class="equipment-category-title">
+                    {{ group.category }}
+                  </p>
+
+                  <button
+                    v-for="option in group.features"
+                    :key="option.id"
+                    class="equipment-option"
+                    @click="addFeature(option.id)"
+                  >
+                    {{ option.displayLabel }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -645,36 +728,6 @@ function finish() {
   background: #0078d4;
 }
 
-.search-box {
-  display: flex;
-  align-items: center;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 10px 14px;
-  gap: 10px;
-  background: #fff;
-}
-
-.search-icon {
-  font-size: 15px;
-  opacity: 0.5;
-}
-
-.search-select {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 13px;
-  color: #555;
-  background: transparent;
-  cursor: pointer;
-  appearance: none;
-}
-
-.search-select option {
-  color: #111;
-}
-
 .step2-footer {
   display: flex;
   justify-content: center;
@@ -722,6 +775,7 @@ function finish() {
   color: #856404;
   margin-bottom: 12px;
 }
+
 .equipment-search {
   margin-top: 24px;
   display: flex;
@@ -729,20 +783,14 @@ function finish() {
   gap: 8px;
 }
 
-/* input */
-
 .equipment-search-input {
   display: flex;
   align-items: center;
   gap: 10px;
-
   padding: 12px 16px;
-
   border: 1px solid #dcdcdc;
   border-radius: 999px;
-
   background: #fff;
-
   transition:
     border-color 0.15s ease,
     box-shadow 0.15s ease;
@@ -750,7 +798,6 @@ function finish() {
 
 .equipment-search-input:focus-within {
   border-color: #0078d4;
-
   box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.08);
 }
 
@@ -762,57 +809,18 @@ function finish() {
   background: transparent;
 }
 
-/* icon */
-
 .search-icon {
   font-size: 14px;
   opacity: 0.5;
 }
 
-/* dropdown results */
-
 .equipment-search-results {
   max-height: 220px;
-
   overflow-y: auto;
-
   border-radius: 12px;
-
   border: 1px solid #e6e6e6;
-
   background: #fff;
-
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
-}
-
-/* option item */
-
-.equipment-option {
-  width: 100%;
-
-  padding: 11px 16px;
-
-  border: none;
-
-  background: transparent;
-
-  text-align: left;
-
-  font-size: 13px;
-
-  cursor: pointer;
-
-  transition: background 0.12s ease;
-}
-
-.equipment-option:hover {
-  background: #f5f9ff;
-}
-
-/* divider */
-
-.equipment-option + .equipment-option {
-  border-top: 1px solid #f1f1f1;
 }
 
 .equipment-search-results::-webkit-scrollbar {
@@ -822,5 +830,43 @@ function finish() {
 .equipment-search-results::-webkit-scrollbar-thumb {
   background: #ddd;
   border-radius: 4px;
+}
+
+.equipment-category-group + .equipment-category-group {
+  border-top: 1px solid #ececec;
+}
+
+.equipment-category-title {
+  margin: 0;
+  padding: 12px 16px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6f6f6f;
+  background: #fafafa;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.equipment-option {
+  width: 100%;
+  padding: 11px 16px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  color: #111;
+}
+
+.equipment-option:hover {
+  background: #f5f9ff;
+}
+
+.equipment-option + .equipment-option {
+  border-top: 1px solid #f5f5f5;
 }
 </style>
