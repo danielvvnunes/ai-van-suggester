@@ -114,55 +114,55 @@ async function goToStep2() {
     // Uncomment after backend is readonly
     // ====================================
 
-    // const response = await fetch(
-    //   "https://dev.api.oneweb.mercedes-benz.com/vans/equipment/search/api/filter-options",
-    //   {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify(payload),
-    //   },
-    // );
+    const response = await fetch(
+      "https://dev.api.oneweb.mercedes-benz.com/vans/equipment/search/api/filter-options",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
 
-    // if (!response.ok) {
-    //   throw new Error(`API request failed: ${response.status}`);
-    // }
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
 
-    // const data: ApiResponse = await response.json();
+    const data: ApiResponse = await response.json();
 
     // ====================================
 
     console.log("API payload:", payload);
 
     // Mock API response — replace with real fetch when API is ready
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    const data: ApiResponse = {
-      selection: [
-        { id: "roof-rails", label: "Roof rails", selected: true },
-        { id: "parking-assist", label: "Parking assist", selected: true },
-        { id: "cruise-control", label: "Cruise control", selected: false },
-        { id: "3-seats", label: "3 seats", selected: true },
-        { id: "climate-control", label: "Climate control", selected: false },
-        { id: "navigation", label: "Navigation system", selected: true },
-        { id: "cargo-liner", label: "Cargo liner", selected: false },
-        { id: "tow-bar", label: "Tow bar", selected: false },
-        { id: "led-lights", label: "LED headlights", selected: true },
-        { id: "keyless-entry", label: "Keyless entry", selected: false },
-      ],
-      all: [
-        { id: "apple-carplay", label: "Apple CarPlay", selected: false },
-        { id: "android-auto", label: "Android Auto", selected: false },
-        { id: "360-camera", label: "360° camera", selected: false },
-        { id: "blind-spot", label: "Blind spot assist", selected: false },
-        { id: "heated-seats", label: "Heated seats", selected: false },
-        { id: "lane-assist", label: "Lane keeping assist", selected: false },
-        { id: "rear-camera", label: "Rear view camera", selected: false },
-        { id: "ambient-light", label: "Ambient lighting", selected: false },
-        { id: "usb-c", label: "USB-C charging ports", selected: false },
-        { id: "roof-rack", label: "Roof rack", selected: false },
-        { id: "partition-wall", label: "Partition wall", selected: false },
-        { id: "sliding-door", label: "Electric sliding door", selected: false },
-      ],
-    };
+    // await new Promise((resolve) => setTimeout(resolve, 600));
+    // const data: ApiResponse = {
+    //   selection: [
+    //     { id: "roof-rails", label: "Roof rails", selected: true },
+    //     { id: "parking-assist", label: "Parking assist", selected: true },
+    //     { id: "cruise-control", label: "Cruise control", selected: false },
+    //     { id: "3-seats", label: "3 seats", selected: true },
+    //     { id: "climate-control", label: "Climate control", selected: false },
+    //     { id: "navigation", label: "Navigation system", selected: true },
+    //     { id: "cargo-liner", label: "Cargo liner", selected: false },
+    //     { id: "tow-bar", label: "Tow bar", selected: false },
+    //     { id: "led-lights", label: "LED headlights", selected: true },
+    //     { id: "keyless-entry", label: "Keyless entry", selected: false },
+    //   ],
+    //   all: [
+    //     { id: "apple-carplay", label: "Apple CarPlay", selected: false },
+    //     { id: "android-auto", label: "Android Auto", selected: false },
+    //     { id: "360-camera", label: "360° camera", selected: false },
+    //     { id: "blind-spot", label: "Blind spot assist", selected: false },
+    //     { id: "heated-seats", label: "Heated seats", selected: false },
+    //     { id: "lane-assist", label: "Lane keeping assist", selected: false },
+    //     { id: "rear-camera", label: "Rear view camera", selected: false },
+    //     { id: "ambient-light", label: "Ambient lighting", selected: false },
+    //     { id: "usb-c", label: "USB-C charging ports", selected: false },
+    //     { id: "roof-rack", label: "Roof rack", selected: false },
+    //     { id: "partition-wall", label: "Partition wall", selected: false },
+    //     { id: "sliding-door", label: "Electric sliding door", selected: false },
+    //   ],
+    // };
 
     selectionFeatures.value = data.selection;
     allFeatures.value = data.all;
