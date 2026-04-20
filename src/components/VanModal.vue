@@ -94,16 +94,6 @@ function toggleSelectionFeature(id: string) {
   selectedFeatureIds.value = next;
 }
 
-function onDropdownChange() {
-  const id = dropdownValue.value;
-  if (!id) return;
-
-  const next = new Set(selectedFeatureIds.value);
-  next.add(id);
-  selectedFeatureIds.value = next;
-  dropdownValue.value = "";
-}
-
 const extraFeatures = computed(() =>
   allFeatures.value.filter(
     (feature) =>
