@@ -35,11 +35,13 @@ const tdImage = computed(
 
 <template>
   <main class="page">
-    <div class="hero-frame" @click="modalOpen = true" style="cursor: pointer">
+    <div class="hero-frame">
       <img
         src="./assets/panelvan-stage.jpg"
         alt="Mercedes-Benz Vans homepage mock"
         class="hero-image"
+        @click="modalOpen = true"
+        style="cursor: pointer"
       />
       <img
         :src="tdImage"
