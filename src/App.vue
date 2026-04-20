@@ -5,7 +5,7 @@ import type { ApplyPayload, SelectedFeature } from "./components/VanModal.vue";
 
 type VehicleLength = "standard" | "long" | "extralong";
 type VehicleTransmission = "manual" | "automatic";
-type VehicleType = "panelvan" | "mpv";
+type VehicleType = "panelvan" | "chassis" | "tourer";
 
 const modalOpen = ref(false);
 const size = ref<VehicleLength>("standard");
@@ -19,6 +19,7 @@ function normalizeLength(length?: string): VehicleLength {
       return "long";
     case "extralong":
       return "extralong";
+    case "standard":
     default:
       return "standard";
   }
@@ -30,6 +31,7 @@ function normalizeTransmission(
   switch (transmissionValue?.toLowerCase()) {
     case "automatic":
       return "automatic";
+    case "manual":
     default:
       return "manual";
   }
@@ -37,8 +39,11 @@ function normalizeTransmission(
 
 function normalizeVehicleType(type?: string): VehicleType {
   switch (type?.toLowerCase()) {
-    case "mpv":
-      return "mpv";
+    case "chassis":
+      return "chassis";
+    case "tourer":
+      return "tourer";
+    case "panelvan":
     default:
       return "panelvan";
   }
@@ -52,14 +57,22 @@ function handleApply(payload: ApplyPayload) {
   size.value = normalizeLength(payload.vehicle.length);
   transmission.value = normalizeTransmission(payload.vehicle.transmission);
   vehicleType.value = normalizeVehicleType(payload.vehicle.type);
+
+  console.log("Applied configuration:", {
+    size: size.value,
+    transmission: transmission.value,
+    vehicleType: vehicleType.value,
+    features: highlightFeatures.value,
+  });
 }
 
-const tdImage = computed(() => {
-  return new URL(
-    `./assets/td-combinations/${vehicleType.value}-${size.value}-${transmission.value}.jpeg`,
-    import.meta.url,
-  ).href;
-});
+const tdImage = computed(
+  () =>
+    new URL(
+      `./assets/td-combinations/${vehicleType.value}-${size.value}-${transmission.value}.jpeg`,
+      import.meta.url,
+    ).href,
+);
 </script>
 
 <template>
