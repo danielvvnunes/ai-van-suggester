@@ -206,6 +206,27 @@ function close() {
   emit("close");
 }
 
+const searchQuery = ref("");
+
+const filteredDropdownOptions = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase();
+
+  if (!query) {
+    return dropdownOptions.value.slice(0, 8);
+  }
+
+  return dropdownOptions.value
+    .filter((feature) => feature.label.toLowerCase().includes(query))
+    .slice(0, 12);
+});
+
+function addFeature(id: string) {
+  const next = new Set(selectedFeatureIds.value);
+  next.add(id);
+  selectedFeatureIds.value = next;
+  searchQuery.value = "";
+}
+
 function finish() {
   const allVisibleFeatures = [
     ...selectionFeatures.value,
@@ -340,27 +361,30 @@ function finish() {
               </button>
             </div>
 
-            <div class="search-box">
-              <span class="search-icon">🔍</span>
+            <div class="equipment-search">
+              <div class="equipment-search-input">
+                <span class="search-icon">🔍</span>
 
-              <select
-                v-model="dropdownValue"
-                class="search-select"
-                @change="onDropdownChange"
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="Search equipment"
+                />
+              </div>
+
+              <div
+                v-if="filteredDropdownOptions.length"
+                class="equipment-search-results"
               >
-                <option value="" disabled>
-                  Looking for something else? Browse our equipment
-                </option>
-                <option
-                  v-for="option in dropdownOptions"
+                <button
+                  v-for="option in filteredDropdownOptions"
                   :key="option.id"
-                  :value="option.id"
+                  class="equipment-option"
+                  @click="addFeature(option.id)"
                 >
                   {{ option.label }}
-                </option>
-              </select>
-
-              <span class="search-caret">▼</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -707,5 +731,106 @@ function finish() {
   font-size: 12px;
   color: #856404;
   margin-bottom: 12px;
+}
+.equipment-search {
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* input */
+
+.equipment-search-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 12px 16px;
+
+  border: 1px solid #dcdcdc;
+  border-radius: 999px;
+
+  background: #fff;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.equipment-search-input:focus-within {
+  border-color: #0078d4;
+
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.08);
+}
+
+.equipment-search-input input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  flex: 1;
+  background: transparent;
+}
+
+/* icon */
+
+.search-icon {
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+/* dropdown results */
+
+.equipment-search-results {
+  max-height: 220px;
+
+  overflow-y: auto;
+
+  border-radius: 12px;
+
+  border: 1px solid #e6e6e6;
+
+  background: #fff;
+
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+/* option item */
+
+.equipment-option {
+  width: 100%;
+
+  padding: 11px 16px;
+
+  border: none;
+
+  background: transparent;
+
+  text-align: left;
+
+  font-size: 13px;
+
+  cursor: pointer;
+
+  transition: background 0.12s ease;
+}
+
+.equipment-option:hover {
+  background: #f5f9ff;
+}
+
+/* divider */
+
+.equipment-option + .equipment-option {
+  border-top: 1px solid #f1f1f1;
+}
+
+.equipment-search-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+.equipment-search-results::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
 }
 </style>
