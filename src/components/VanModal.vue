@@ -119,9 +119,13 @@ const dropdownOptions = computed(() =>
   ),
 );
 
-async function goToStep2() {
-  if (selectedPurposes.value.length === 0) return;
+const canContinueToStep2 = computed(
+  () =>
+    selectedPurposes.value.length > 0 || customPurpose.value.trim().length > 0,
+);
 
+async function goToStep2() {
+  if (!canContinueToStep2.value) return;
   apiLoading.value = true;
   apiError.value = null;
 
@@ -283,7 +287,7 @@ function finish() {
           <div class="modal-footer step1-footer">
             <button
               class="continue-link"
-              :disabled="selectedPurposes.length === 0 || apiLoading"
+              :disabled="!canContinueToStep2 || apiLoading"
               @click="goToStep2"
             >
               <span v-if="apiLoading" class="spinner" />

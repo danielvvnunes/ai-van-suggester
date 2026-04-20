@@ -41,13 +41,21 @@ const tdImage = computed(
 <template>
   <main class="page">
     <div class="hero-frame">
-      <img
-        :src="stageImage"
-        alt="Mercedes-Benz Vans homepage mock"
-        class="hero-image"
-        @click="modalOpen = true"
-        style="cursor: pointer"
-      />
+      <div class="stage-wrapper">
+        <img
+          :src="stageImage"
+          alt="Mercedes-Benz Vans homepage mock"
+          class="hero-image"
+          tabindex="-1"
+        />
+
+        <button
+          class="stage-hotspot"
+          aria-label="Open personalization modal"
+          @click="modalOpen = true"
+        />
+      </div>
+
       <img
         :src="tdImage"
         alt="Mercedes-Benz Vans homepage mock"
@@ -106,12 +114,36 @@ const tdImage = computed(
   height: 100%;
 }
 
+.stage-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.stage-hotspot:focus,
+.stage-hotspot:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .hero-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: top center;
   display: block;
+}
+
+.stage-hotspot {
+  position: absolute;
+  left: 6%;
+  bottom: 5.2%;
+  width: 26%;
+  height: 11%;
+  background: transparent;
+  border: none;
+  border-radius: 28px;
+  cursor: pointer;
+  z-index: 2;
 }
 
 .button-overlay {
