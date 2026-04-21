@@ -509,7 +509,9 @@ function finish() {
               </div>
             </div>
 
-            <div class="modal-footer step2-footer">
+            <div class="modal-footer summary-footer">
+              <button class="secondary-btn" @click="step = 1">Back</button>
+
               <button class="continue-btn" @click="goToStep3">
                 Review your recommended Sprinter
               </button>
