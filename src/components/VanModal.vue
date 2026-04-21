@@ -525,7 +525,7 @@ function finish() {
 
               <p class="modal-subtitle">
                 Based on your use case and selected equipment, here is the
-                recommended configuration for your working day.
+                recommended vehicle for your working day.
               </p>
 
               <div class="summary-grid">
