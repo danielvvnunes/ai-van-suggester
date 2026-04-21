@@ -216,14 +216,13 @@ const filteredGroupedOptions = computed(() => {
     );
   });
 
-  const limited = query ? filtered.slice(0, 24) : filtered.slice(0, 18);
-
   const groups = new Map<FeatureCategory, ApiFeature[]>();
 
-  for (const feature of limited) {
+  for (const feature of filtered) {
     if (!groups.has(feature.category)) {
       groups.set(feature.category, []);
     }
+
     groups.get(feature.category)!.push(feature);
   }
 
