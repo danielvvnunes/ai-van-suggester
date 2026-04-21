@@ -137,6 +137,10 @@ function normalizeFeatureLabel(label: string) {
   return normalized;
 }
 
+function normalizeVehicleValue(value: string) {
+  return normalizeFeatureLabel(value.replace(/([a-z])([A-Z])/g, "$1 $2"));
+}
+
 function enrichFeature(feature: RawApiFeature): ApiFeature {
   return {
     ...feature,
@@ -178,6 +182,27 @@ const canContinueToStep2 = computed(
   () =>
     selectedPurposes.value.length > 0 || customPurpose.value.trim().length > 0,
 );
+
+const selectedFeaturesForSummary = computed(() =>
+  [...selectionFeatures.value, ...extraFeatures.value].filter((feature) =>
+    selectedFeatureIds.value.has(feature.id),
+  ),
+);
+
+const vehicleSummary = computed(() => {
+  if (!vehicle.value) return null;
+
+  return {
+    type: normalizeVehicleValue(vehicle.value.type),
+    transmission: normalizeVehicleValue(vehicle.value.transmission),
+    length: normalizeVehicleValue(vehicle.value.length),
+  };
+});
+
+const summaryVehicleImage = computed(() => {
+  const type = vehicle.value?.type?.toLowerCase() || "panelvan";
+  return new URL(`../assets/${type}-result.png`, import.meta.url).href;
+});
 
 const filteredGroupedOptions = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
@@ -230,6 +255,10 @@ function addFeature(id: string) {
   searchQuery.value = "";
 }
 
+function goToStep3() {
+  step.value = 3;
+}
+
 async function goToStep2() {
   if (!canContinueToStep2.value) return;
 
@@ -277,6 +306,8 @@ async function goToStep2() {
     selectedFeatureIds.value = new Set(
       data.selection.filter((f) => f.selected).map((f) => f.id),
     );
+
+    step.value = 2;
   } catch (error) {
     apiError.value =
       error instanceof Error ? error.message : "Failed to reach API.";
@@ -285,9 +316,9 @@ async function goToStep2() {
     allFeatures.value = [];
     selectedFeatureIds.value = new Set();
     vehicle.value = null;
+    step.value = 2;
   } finally {
     apiLoading.value = false;
-    step.value = 2;
   }
 }
 
@@ -310,12 +341,10 @@ function close() {
 }
 
 function finish() {
-  const selectedFeatures = [...selectionFeatures.value, ...extraFeatures.value]
-    .filter((f) => selectedFeatureIds.value.has(f.id))
-    .map((f) => ({
-      id: f.id,
-      label: f.displayLabel,
-    }));
+  const selectedFeatures = selectedFeaturesForSummary.value.map((f) => ({
+    id: f.id,
+    label: f.displayLabel,
+  }));
 
   emit("apply", {
     features: selectedFeatures,
@@ -334,7 +363,9 @@ function finish() {
           <div class="progress-bar">
             <div
               class="progress-fill"
-              :style="{ width: step === 1 ? '40%' : '80%' }"
+              :style="{
+                width: step === 1 ? '33.33%' : step === 2 ? '66.66%' : '100%',
+              }"
             />
           </div>
 
@@ -396,7 +427,7 @@ function finish() {
             </div>
           </template>
 
-          <template v-else>
+          <template v-else-if="step === 2">
             <div class="modal-body">
               <h2 class="modal-title">
                 <span class="star-icon">✦</span>
@@ -410,7 +441,8 @@ function finish() {
               </p>
 
               <p class="recommended-label">
-                Recommended features for {{ selectedPurposeLabels }}
+                Recommended features for
+                {{ selectedPurposeLabels || "your selected use case" }}
               </p>
 
               <div v-if="apiError" class="api-error">
@@ -478,6 +510,107 @@ function finish() {
             </div>
 
             <div class="modal-footer step2-footer">
+              <button class="continue-btn" @click="goToStep3">
+                Review your recommended Sprinter
+              </button>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="modal-body summary-body">
+              <h2 class="modal-title">
+                <span class="star-icon">✦</span>
+                Your recommended Sprinter setup
+              </h2>
+
+              <p class="modal-subtitle">
+                Based on your use case and selected equipment, here is the
+                recommended configuration for your working day.
+              </p>
+
+              <div class="summary-grid">
+                <section class="summary-card summary-vehicle-card">
+                  <p class="summary-eyebrow">Recommended vehicle</p>
+
+                  <h3 class="summary-vehicle-title">Mercedes-Benz Sprinter</h3>
+
+                  <div v-if="vehicleSummary" class="summary-specs">
+                    <div class="summary-spec">
+                      <span class="summary-spec-label">Body type</span>
+                      <span class="summary-spec-value">
+                        {{ vehicleSummary.type }}
+                      </span>
+                    </div>
+
+                    <div class="summary-spec">
+                      <span class="summary-spec-label">Transmission</span>
+                      <span class="summary-spec-value">
+                        {{ vehicleSummary.transmission }}
+                      </span>
+                    </div>
+
+                    <div class="summary-spec">
+                      <span class="summary-spec-label">Length</span>
+                      <span class="summary-spec-value">
+                        {{ vehicleSummary.length }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div v-else class="summary-empty">
+                    Vehicle recommendation unavailable
+                  </div>
+                </section>
+
+                <section class="summary-card summary-image-card">
+                  <img
+                    :src="summaryVehicleImage"
+                    alt="Recommended Mercedes-Benz Sprinter"
+                    class="summary-vehicle-image"
+                  />
+                </section>
+
+                <section class="summary-card summary-use-case-card">
+                  <p class="summary-eyebrow">Use case</p>
+
+                  <p class="summary-text">
+                    {{ selectedPurposeLabels || "Custom use case" }}
+                  </p>
+
+                  <p v-if="customPurpose.trim()" class="summary-custom-text">
+                    {{ customPurpose }}
+                  </p>
+                </section>
+
+                <section class="summary-card summary-features-card">
+                  <div class="summary-card-header">
+                    <p class="summary-eyebrow">Selected equipment</p>
+                    <span class="summary-count">
+                      {{ selectedFeaturesForSummary.length }}
+                    </span>
+                  </div>
+
+                  <div
+                    v-if="selectedFeaturesForSummary.length > 0"
+                    class="summary-feature-list"
+                  >
+                    <span
+                      v-for="feature in selectedFeaturesForSummary"
+                      :key="feature.id"
+                      class="summary-feature-pill"
+                    >
+                      {{ feature.displayLabel }}
+                    </span>
+                  </div>
+
+                  <p v-else class="summary-empty">No equipment selected</p>
+                </section>
+              </div>
+            </div>
+
+            <div class="modal-footer summary-footer">
+              <button class="secondary-btn" @click="step = 2">Back</button>
+
               <button class="continue-btn" @click="finish">
                 Continue to your Sprinter
               </button>
@@ -699,7 +832,8 @@ function finish() {
   padding: 14px 32px 24px;
 }
 
-.step1-footer {
+.step1-footer,
+.step2-footer {
   display: flex;
   justify-content: center;
 }
@@ -776,11 +910,6 @@ function finish() {
   background: #0078d4;
 }
 
-.step2-footer {
-  display: flex;
-  justify-content: center;
-}
-
 .continue-btn {
   background: #0078d4;
   color: #fff;
@@ -795,6 +924,25 @@ function finish() {
 
 .continue-btn:hover {
   background: #005fa3;
+}
+
+.secondary-btn {
+  background: #fff;
+  color: #111;
+  border: 1px solid #d6d6d6;
+  border-radius: 999px;
+  padding: 14px 28px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.secondary-btn:hover {
+  background: #f7f7f7;
+  border-color: #bcbcbc;
 }
 
 @keyframes spin {
@@ -916,5 +1064,197 @@ function finish() {
 
 .equipment-option + .equipment-option {
   border-top: 1px solid #f5f5f5;
+}
+
+.summary-body {
+  padding-bottom: 8px;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-areas:
+    "vehicle image"
+    "usecase equipment";
+}
+
+.summary-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.summary-vehicle-card {
+  grid-area: vehicle;
+  min-height: 220px;
+}
+
+.summary-image-card {
+  grid-area: image;
+  padding: 0;
+  overflow: hidden;
+  min-height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #f8f8fa 0%, #f2f2f5 100%);
+}
+
+.summary-use-case-card {
+  grid-area: usecase;
+  min-height: 180px;
+}
+
+.summary-features-card {
+  grid-area: equipment;
+  min-height: 180px;
+}
+
+.summary-vehicle-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.summary-eyebrow {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6f6f6f;
+}
+
+.summary-vehicle-title {
+  margin: 0 0 18px;
+  font-size: 24px;
+  line-height: 1.2;
+  color: #111;
+  font-weight: 600;
+}
+
+.summary-specs {
+  display: grid;
+  gap: 12px;
+}
+
+.summary-spec {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #efefef;
+}
+
+.summary-spec:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.summary-spec-label {
+  font-size: 13px;
+  color: #666;
+}
+
+.summary-spec-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111;
+  text-align: right;
+}
+
+.summary-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #111;
+  font-weight: 500;
+}
+
+.summary-custom-text {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #555;
+}
+
+.summary-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.summary-count {
+  min-width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #eef6ff;
+  color: #0078d4;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.summary-feature-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.summary-feature-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #f5f8fb;
+  border: 1px solid #e2e8ef;
+  color: #111;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.summary-empty {
+  margin: 0;
+  font-size: 13px;
+  color: #777;
+}
+
+.summary-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 700px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "vehicle"
+      "image"
+      "usecase"
+      "equipment";
+  }
+
+  .summary-footer {
+    flex-direction: column-reverse;
+  }
+
+  .secondary-btn,
+  .continue-btn {
+    width: 100%;
+  }
+
+  .summary-image-card {
+    min-height: 220px;
+  }
 }
 </style>
